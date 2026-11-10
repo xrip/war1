@@ -44,19 +44,20 @@ CMake, Ninja and SDL3; `CC` picks the compiler.
     # https://github.com/libsdl-org/SDL/releases/.../SDL3-devel-<ver>-mingw.zip
     # unpacked into third_party/sdl3 (or on CMAKE_PREFIX_PATH)
     scoop install mingw
-    scripts/build.sh      # -> build/host/war1-host[.exe] (+ SDL3.dll on Windows)
+    scripts/build.sh      # -> build/host/war1[.exe] (+ SDL3.dll on Windows)
 
 ## Game data
 
 Link or copy `DATA.WAR` into `build/host/run/` and run the binary from there:
 
     cd build/host/run
-    WAR_WINDOW=1 ../war1-host.exe                              # windowed play (Windows)
-    ../war1-host.exe --race orc --mission 1                    # straight into a campaign mission
+    ../war1                                     # the game: intro, menu
+    ../war1 --race orc --mission 1              # straight into a campaign mission
+    ../war1 --headless --fixed --script s.txt   # no window, deterministic, driven by a script
 
-The host build is headless and deterministic by default: virtual time only
-advances while the game waits for its next frame. `src/platform/host.c` lists
-its options (input scripts, recording, replay checks, WAV capture).
+`--headless` runs without a window, deterministic: virtual time only advances
+while the game waits for its next frame. `src/platform/host.c` lists every
+option (input scripts, recording, replay checks, WAV capture).
 
 ## Campaign replays
 
@@ -69,7 +70,12 @@ and `tools/agent/README.md` explains how to rebuild it and play a replay:
     WAR_AILOG=/dev/null WAR_FIXED=1 WAR_SCRIPT=../../../tools/agent/replays/orc12-win.txt \
         ../war1-host-agent39 --race orc --mission 12
 
-A replay ends with `campaign result: win at tick T`.
+A replay ends with `campaign result: win at tick T`. Those older builds take
+the run mode from `WAR_*` variables; `war1` takes options, and orc1 and orc5
+still win on it:
+
+    WAR_AILOG=/dev/null ../war1 --headless --fixed \
+        --script ../../../tools/agent/replays/orc5-win.txt --race orc --mission 5
 
 ## Credits
 

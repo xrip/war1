@@ -40,8 +40,8 @@ cat > "$input" <<'CASES'
 2500 quit
 CASES
 cd build/host/run
-if ! env -u WAR_AI_HUMAN -u WAR_RECORD WAR_WINDOW=0 WAR_FIXED=1 WAR_RNGSEED=12345678 \
-    WAR_SCRIPT="$input" ../test-live-spells --race human --mission 1 > ../live-spells.log 2>&1; then
+if ! WAR_RNGSEED=12345678 ../test-live-spells --headless --fixed --script "$input" \
+    --race human --mission 1 > ../live-spells.log 2>&1; then
     cat ../live-spells.log
     exit 1
 fi

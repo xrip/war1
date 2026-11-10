@@ -30,6 +30,6 @@ function(add_game name main)
     endif()
 endfunction()
 
-add_game(war1-host src/main.c)
+add_game(war1 src/main.c)
 add_game(test-live-spells tests/test_live_spells.c) # tests/test_live_spells.sh
 set_target_properties(test-live-spells PROPERTIES EXCLUDE_FROM_ALL ON)

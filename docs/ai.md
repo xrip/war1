@@ -1786,13 +1786,13 @@ reads them at run time.)
 
 ## Testing it (host build)
 
-- `WAR_SCRIPT` lines `N ai kill K`, `N ai exit` and `N ai reveal` (host
+- `--script` lines `N ai kill K`, `N ai exit` and `N ai reveal` (host
   only) destroy the computer's side but K buildings, put Lothar/Garona on
   the exit, or lift the fog, to check the objective code and take
   screenshots.
-- `WAR_AI_HUMAN=1` lets the AI play the human side too (it pays for what
+- `--ai-human` lets the AI play the human side too (it pays for what
   it trains, founds farms, barracks, mill and blacksmith, and attacks in
-  waves of 8, +2 per wave up to 16); `WAR_AI_HUMAN=free` trains for free
+  waves of 8, +2 per wave up to 16); `--ai-human=free` trains for free
   like the computer. This plays every mission AI vs AI headless, as a
   soak test. The computer beats this simple player in most missions.
 - `PYTHONDONTWRITEBYTECODE=1 python3 tests/test_order_gameplay.py --self-play`

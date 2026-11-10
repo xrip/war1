@@ -7,7 +7,7 @@
    (bits 0xC) -> order 7, open ground -> attack-move order 6, each after the walk.
    war1's attack state with no target was never prepared under the kernel. (human2, tick ~23000;
    human2-win.txt has one attackxy and must be re-recorded or re-checked.)
-4. FIXED: a walk handing over to a player's spell (healing) ran two scripts in one tick (human4 t64895, cleric 22); same pattern as 2, in wst_frankCastTick.
+4. FIXED: a walk handing over to a player's spell (healing) ran two scripts in one tick (human4 t64895, cleric 22); same pattern as 2, in wst_castTick.
 5. NOT A GAME BUG (agent tool): war1's updateCommandButtons asserted on a selected non-unit.
    war1 drops dying, collapsing and hidden units from the selection; only the agent's "sel"
    added any id (a stale id reused by a forest/road entity in a diverged replay). "sel" now

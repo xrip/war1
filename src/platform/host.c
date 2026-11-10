@@ -1,9 +1,22 @@
-// frank-war1 — plat.h on the desktop (Windows, macOS, Linux).
+// frank-war1 — plat.h on the desktop (Windows, macOS, Linux): a window with
+// live input and audio. Its options, in any order with the game's (--race,
+// --mission, ...):
 //
-// Headless by default: virtual time advances only while the game sleeps to
-// its frame deadline (1/60 s per frame), so a run is deterministic and as
-// fast as the CPU allows. A script
-// (WAR_SCRIPT=file) drives the mouse and keys and saves frames:
+//   --headless     no window: virtual time advances only while the game
+//                  sleeps to its frame deadline (1/60 s per frame), so a run
+//                  is deterministic and as fast as the CPU allows
+//   --script FILE  drives the mouse and keys and saves frames (below)
+//   --fixed        the game on a fixed 1/60 s step (replaying a recording
+//                  checks it is deterministic)
+//   --record FILE  records what you do in the script format, on the fixed
+//                  step with a state hash every second: the board replays it
+//                  (tools/replay.sh, main branch)
+//   --wav FILE     records the game's audio (headless: freq/60 samples a frame)
+//   --agent DIR    a player outside the game (agent_stop), on the fixed step
+//   --hash-print   prints each script hash check's state hash
+//   --ai-human[=free]  the AI plays the human side too ("free": without paying)
+//
+// The script:
 //
 //   <frame> move X Y            mouse to (X, Y) in 320x200
 //   <frame> down|up L|R X Y     button press or release at (X, Y)
@@ -16,15 +29,6 @@
 //   <frame> hash HEX            the game state must hash to this (replays)
 //   <frame> mem                 print heap use
 //   <frame> quit
-//
-// WAR_RECORD=file opens the window and records what you do in that format,
-// with the game on a fixed 1/60 s step and a state hash every second: the
-// board replays it (tools/replay.sh, main branch). WAR_FIXED=1 runs a
-// script on the fixed step too (replaying a recording here checks it is
-// deterministic).
-//
-// WAR_WAV=file.wav records the game's audio (headless: freq/60 samples per
-// frame). WAR_WINDOW=1 opens a real window instead, with live input and audio.
 //
 // Copyright (c) 2026 Mikhail Matveev <xtreme@rh1.tech>
 // SPDX-License-Identifier: Zlib
@@ -87,24 +91,19 @@ static void at_exit(void) {
     if (hash_checks) printf("host: replay %d/%d state hashes matched\n", hash_checks - hash_errors, hash_checks);
 }
 
-static const char *agent_dir;   /* WAR_AGENT, see agent_stop */
+/* the options (main) */
+static bool headless, fixed_step, hash_print;
+static const char *script_path, *record_path, *wav_path, *agent_dir;
 static unsigned long long agent_until = 2, agent_seq;
 
 bool plat_init(void) {
-    windowed = getenv("WAR_WINDOW") && atoi(getenv("WAR_WINDOW"));
-    const char *rp = getenv("WAR_RECORD");
-    if (rp) {
-        if (!(rec = fopen(rp, "w"))) { fprintf(stderr, "host: cannot write %s\n", rp); return false; }
+    windowed = !headless;
+    if (record_path) {
+        if (!(rec = fopen(record_path, "w"))) { fprintf(stderr, "host: cannot write %s\n", record_path); return false; }
         fprintf(rec, "# frank-war1 recording v1\n");
-        /* live play in a window, unless WAR_WINDOW=0 (record a script) */
-        windowed = !(getenv("WAR_WINDOW") && !atoi(getenv("WAR_WINDOW")));
-        war_fixedStep = true;
     }
-    if (getenv("WAR_FIXED") && atoi(getenv("WAR_FIXED"))) war_fixedStep = true;
-    agent_dir = getenv("WAR_AGENT");
-    if (agent_dir) war_fixedStep = true;
-    const char *sp = getenv("WAR_SCRIPT");
-    if (sp && !(script = fopen(sp, "r"))) fprintf(stderr, "host: no script %s\n", sp);
+    war_fixedStep = fixed_step || record_path || agent_dir;
+    if (script_path && !(script = fopen(script_path, "r"))) fprintf(stderr, "host: no script %s\n", script_path);
     if (windowed) {
         if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) return false;
         win = SDL_CreateWindow("frank-war1 (host)", PLAT_W * 3, PLAT_H * 3, 0);
@@ -145,7 +144,7 @@ extern size_t wai_report(void *context, char *buf, size_t n);
 extern void wai_debug(void *context, const char *cmd);
 extern void *war_context;
 
-/* WAR_AGENT=dir: a player outside the game. At each stop the game writes
+/* --agent DIR: a player outside the game. At each stop the game writes
  * dir/state.N.txt (and dir/map.N.txt) and waits for dir/cmd.N.txt, script
  * lines ("0 ai ag ..."), of which "0 run F" sets the next stop F frames on. */
 
@@ -214,7 +213,7 @@ static void run_script(const uint16_t *shown) {
         } else if (!strcmp(cmd, "hash")) {
             const uint32_t want = (uint32_t)strtoul(a, NULL, 16), got = war_stateHash(war_context);
             hash_checks++;
-            if (getenv("WAR_HASHPRINT"))
+            if (hash_print)
                 printf("hashat %llu %08x\n", (unsigned long long)frame_no, got);
             if (got != want) {
                 if (!hash_errors) printf("host: frame %llu state hash %08x, recorded %08x: replay diverged\n",
@@ -306,7 +305,7 @@ static int hid_mods(SDL_Keymod m) {
     return r;
 }
 
-/* Live input, recorded when WAR_RECORD is set. */
+/* Live input, recorded with --record. */
 static int last_mx = -1, last_my = -1;
 
 static void rec_move(int x, int y) {
@@ -371,8 +370,7 @@ bool plat_audio_open(int freq) {
         if (astream) SDL_ResumeAudioStreamDevice(astream);
         return astream != NULL;
     }
-    const char *wp = getenv("WAR_WAV");
-    if (wp && (wav = fopen(wp, "wb"))) wav_header();
+    if (wav_path && (wav = fopen(wav_path, "wb"))) wav_header();
     return true;
 }
 
@@ -416,11 +414,23 @@ int main(int argc, char **argv) {
 #endif
     extern int war_main(int argc, char **argv);
     extern bool wai_autoHuman, wai_autoHumanFree;
-    /* test mode: the AI plays the human side too ("free": without paying) */
-    const char *auto_human = getenv("WAR_AI_HUMAN");
-    wai_autoHuman = auto_human != NULL;
-    wai_autoHumanFree = auto_human && !strcmp(auto_human, "free");
-    return war_main(argc, argv);
+    int n = 1;   /* the host's options out, the game's stay */
+    for (int i = 1; i < argc; i++) {
+        const char *a = argv[i];
+        const char **value = !strcmp(a, "--script") ? &script_path : !strcmp(a, "--record") ? &record_path
+                           : !strcmp(a, "--wav") ? &wav_path : !strcmp(a, "--agent") ? &agent_dir : NULL;
+        if (value) {
+            if (++i == argc) { fprintf(stderr, "host: %s needs a value\n", a); return 2; }
+            *value = argv[i];
+        } else if (!strcmp(a, "--headless")) headless = true;
+        else if (!strcmp(a, "--fixed")) fixed_step = true;
+        else if (!strcmp(a, "--hash-print")) hash_print = true;
+        else if (!strcmp(a, "--ai-human")) wai_autoHuman = true;
+        else if (!strcmp(a, "--ai-human=free")) wai_autoHuman = wai_autoHumanFree = true;
+        else argv[n++] = argv[i];
+    }
+    argv[n] = NULL;
+    return war_main(n, argv);
 }
 
 /* Music: not on the host yet (the board plays it on OPL2). */

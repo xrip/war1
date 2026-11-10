@@ -39,10 +39,10 @@ def last_seed(path):
     return int(fields[1], 16)
 
 
-def play(mission, race, number, env, run_log, host):
+def play(mission, race, number, options, env, run_log, host):
     with run_log.open('w') as log:
         result = subprocess.run(
-            [str(host), '--race', race, '--mission', number],
+            [str(host), *options, '--race', race, '--mission', number],
             cwd=ROOT / 'build/host/run', env=env, stdout=log, stderr=subprocess.STDOUT, timeout=600)
     if result.returncode:
         raise ValueError(f'{mission}: game exited {result.returncode}; see {run_log}')
@@ -111,7 +111,7 @@ def reference_window(mission, race, number, seed, ticks):
 
 def output_directory(self_play, ticks, host):
     name = 'kernel-self-play' if self_play else 'kernel'
-    if host != ROOT / 'build/host/war1-host':
+    if host != ROOT / 'build/host/war1':
         name += f'-{host.stem}'
     if ticks != TICKS:
         name += f'-{ticks}'
@@ -119,7 +119,7 @@ def output_directory(self_play, ticks, host):
 
 
 def run_mission(mission, self_play=False, check_unlogged=False, ticks=TICKS,
-                host=ROOT / 'build/host/war1-host'):
+                host=ROOT / 'build/host/war1'):
     match = re.fullmatch(r'(human|orc)([1-9]|1[0-2])', mission)
     if not match:
         raise ValueError(f'invalid mission: {mission}')
@@ -144,14 +144,10 @@ def run_mission(mission, self_play=False, check_unlogged=False, ticks=TICKS,
     run_log = out / f'{mission}.log'
     tile_log = out / f'{mission}.tiles'
     rng_log = out / f'{mission}.rng'
-    env = os.environ.copy()
-    for name in ('WAR_WINDOW', 'WAR_RECORD', 'WAR_AI_HUMAN'):
-        env.pop(name, None)
-    env.update(WAR_FIXED='1', WAR_SCRIPT=str(script), WAR_RNGSEED=f'{seed:x}',
-               WAR_AITILES='1', WAR_AIEVERY='1', WAR_AILOG=str(tile_log), WAR_RNGLOG=str(rng_log))
-    if self_play:
-        env['WAR_AI_HUMAN'] = '1'
-    terminal = play(mission, race, number, env, run_log, host)
+    options = ['--headless', '--fixed', '--script', str(script)] + (['--ai-human'] if self_play else [])
+    env = dict(os.environ, WAR_RNGSEED=f'{seed:x}', WAR_AITILES='1', WAR_AIEVERY='1',
+               WAR_AILOG=str(tile_log), WAR_RNGLOG=str(rng_log))
+    terminal = play(mission, race, number, options, env, run_log, host)
 
     flags, counts, samples = None, (0, 0, 0, 0, 0), 0
     with tile_log.open() as log:
@@ -191,7 +187,7 @@ def run_mission(mission, self_play=False, check_unlogged=False, ticks=TICKS,
         unlogged_env.pop('WAR_RNGLOG', None)
         unlogged_env['WAR_AILOG'] = str(unlogged_tiles)
         unlogged_terminal = play(
-            mission, race, number, unlogged_env, out / f'{mission}.without-rng-log.log', host)
+            mission, race, number, options, unlogged_env, out / f'{mission}.without-rng-log.log', host)
         if (unlogged_terminal != terminal or
                 replay_digest(unlogged_tiles, flags, samples) != digest):
             raise ValueError(f'{mission}: disabling RNG logging changed gameplay')
@@ -203,7 +199,7 @@ def run_mission(mission, self_play=False, check_unlogged=False, ticks=TICKS,
         replay_tiles = out / f'{mission}.replay.tiles'
         replay_rng = out / f'{mission}.replay.rng'
         env.update(WAR_AILOG=str(replay_tiles), WAR_RNGLOG=str(replay_rng))
-        replay_terminal = play(mission, race, number, env, out / f'{mission}.replay.log', host)
+        replay_terminal = play(mission, race, number, options, env, out / f'{mission}.replay.log', host)
         if (replay_terminal != terminal or read_run(replay_rng) != rng or
                 replay_digest(replay_tiles, flags, samples) != digest):
             raise ValueError(f'{mission}: AI-versus-AI replay is not deterministic')
@@ -235,7 +231,7 @@ def main():
                         help='also replay without RNG logging and require identical unit-state traces')
     parser.add_argument('--ticks', type=int, default=TICKS,
                         help='comparison window; longer runs cache fresh original traces separately')
-    parser.add_argument('--host', type=Path, default=ROOT / 'build/host/war1-host',
+    parser.add_argument('--host', type=Path, default=ROOT / 'build/host/war1',
                         help='host executable; permits isolated builds during a frozen baseline run')
     parser.add_argument('missions', nargs='*', help='e.g. human1 human6 orc5; default: all 24')
     args = parser.parse_args()

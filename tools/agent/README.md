@@ -1,7 +1,7 @@
 # Agent campaign kit (host only)
 
 Helpers that play the campaign through the host build's agent mode
-(`WAR_AGENT=dir`, `ai ag ...` commands, see `src/ai/ai.c`), and the
+(`--agent DIR`, `ai ag ...` commands, see `src/ai/ai.c`), and the
 winning replays. Nothing here touches the board build.
 
 - `start.sh DIR RACE MISSION [BIN]` starts a game in `build/agent/DIR`;
@@ -9,7 +9,7 @@ winning replays. Nothing here touches the board build.
   fresh game (same build) to resume from a point.
 - `macro.py` economy and defence, `fight2.py` group tactics (HOLD, SPREAD,
   SPREADWALK, LEASH, SIEGE, KEEP), `bait.py`, `explore.py`, `doors.py`,
-  `route.py`; `toscript.py DIR OUT` turns a game into a `WAR_SCRIPT` replay.
+  `route.py`; `toscript.py DIR OUT` turns a game into a `--script` replay.
 - `BUGS.md` the bugs found while playing (fixed ones are in git history).
 
 Replays (`replays/*-win.txt`) only reproduce on the build they were made with;
@@ -23,3 +23,5 @@ Replays (`replays/*-win.txt`) only reproduce on the build they were made with;
         ../war1-host-agent39 --race orc --mission 12
 
 Expect `campaign result: win at tick T` (the tick is in replays/README.txt).
+These builds take the run mode from `WAR_*` variables; today's `war1` takes
+options (`--headless --fixed --script FILE`, see `src/platform/host.c`).

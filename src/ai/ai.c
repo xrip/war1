@@ -2543,7 +2543,7 @@ bool wai_checkObjectives(WarContext* context, WarLevelResult* result)
 //   reveal  the fog-of-war cheat (screenshots)
 //   exit    hands Lothar/Garona to the human and puts them on the exit
 // ---------------------------------------------------------------- agent
-// Host agent mode (platform/host.c, WAR_AGENT): a player outside the game
+// Host agent mode (platform/host.c, --agent): a player outside the game
 // reads what the human side sees and gives the human's orders through
 // war1's own player commands (`ai ag <command>` lines).
 

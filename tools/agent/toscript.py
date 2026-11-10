@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # toscript.py DIR OUT: an agent game's turns as a frame-stamped host script
-# (WAR_SCRIPT; replay with WAR_FIXED=1, add WAR_WINDOW=1 to watch)
+# (replay with --headless --fixed --script OUT; without --headless to watch)
 import sys, os, re
 d, out = sys.argv[1], sys.argv[2]
 frame, lines, seq = 2, [], 0

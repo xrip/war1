@@ -29,8 +29,9 @@ seed=$(tail -1 "$ref_log.seed" 2>/dev/null | awk '{print $2}')
 [ -n "$seed" ] || { echo "missing reference seed: $ref_log.seed" >&2; exit 2; }
 frames=$(( minutes * 3600 ))
 printf "%d quit\n" "$frames" > "$out/quit_${race}${mission}.txt"
-( cd "$ROOT/build/host/run" && WAR_AITILES=1 WAR_AILOG="$port_log" WAR_RNGSEED="$seed" WAR_FIXED=1 WAR_SCRIPT="$out/quit_${race}${mission}.txt" \
-  timeout 900 ../war1-host --race "$race" --mission "$mission" > /dev/null 2>&1 )
+( cd "$ROOT/build/host/run" && WAR_AITILES=1 WAR_AILOG="$port_log" WAR_RNGSEED="$seed" \
+  timeout 900 ../war1 --headless --fixed --script "$out/quit_${race}${mission}.txt" \
+  --race "$race" --mission "$mission" > /dev/null 2>&1 )
 flags=$(grep -m1 -oE "flags [0-9a-f]+" "$port_log" | awk '{print $2}')
 coverage=()
 if [ -n "${WAR_AIEVERY:-}" ]; then coverage=(--ticks "$(( minutes * 2000 ))"); fi
