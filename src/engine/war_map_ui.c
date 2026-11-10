@@ -68,13 +68,10 @@ static const char* getSpeedStr(WarMapSpeed value)
 
 static void renderMenus(WarContext* context)
 {
-    TracyCZoneN(ctx, "RenderMenus", 1);
-
     WarMap* map = context->map;
 
     if (map->menuState == WAR_MENU_STATE_NONE)
     {
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -700,14 +697,10 @@ static void renderMenus(WarContext* context)
         default:
             break;
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 static void renderHUD(WarContext* context)
 {
-    TracyCZoneN(ctx, "RenderHUD", 1);
-
     WarMap* map = context->map;
     WarImuiState* imui = &context->imui;
     WarPlayerInfo* player = &map->players[0];
@@ -1044,8 +1037,6 @@ static void renderHUD(WarContext* context)
                 .text = wstr_view(&cheatStatus->debugText)
             ));
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 static void renderStaticPanels(WarContext* context)
@@ -1091,8 +1082,6 @@ static void renderStaticPanels(WarContext* context)
 
 static void renderSelectionRect(WarContext* context)
 {
-    TracyCZoneN(ctx, "RenderSelectionRect", 1);
-
     wr_save(context);
 
     WarInput* input = &context->input;
@@ -1103,14 +1092,10 @@ static void renderSelectionRect(WarContext* context)
     }
 
     wr_restore(context);
-
-    TracyCZoneEnd(ctx);
 }
 
 static void renderCommand(WarContext* context)
 {
-    TracyCZoneN(ctx, "RenderCommand", 1);
-
     WarMap* map = context->map;
     WarUnitCommand* command = &map->commandState.command;
 
@@ -1181,14 +1166,10 @@ static void renderCommand(WarContext* context)
     }
 
     wr_restore(context);
-
-    TracyCZoneEnd(ctx);
 }
 
 void wmui_renderMapUI(WarContext* context)
 {
-    TracyCZoneN(ctx, "RenderMapUI", 1);
-
     wr_save(context);
 
     renderStaticPanels(context);
@@ -1199,6 +1180,4 @@ void wmui_renderMapUI(WarContext* context)
     renderMenus(context);
 
     wr_restore(context);
-
-    TracyCZoneEnd(ctx);
 }

@@ -99,12 +99,6 @@ void wr_fillRect(WarContext* context, rect r, WarColor color)
     SDL_RenderFillRect(context->renderer, &dr);
 }
 
-void wr_fillRects(WarContext* context, s32 count, rect r[], WarColor color)
-{
-    for (s32 i = 0; i < count; i++)
-        wr_fillRect(context, r[i], color);
-}
-
 void wr_strokeRect(WarContext* context, rect r, WarColor color)
 {
     SDL_FRect dr = renderTransformRect(context, r);

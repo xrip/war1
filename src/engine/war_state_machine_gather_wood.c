@@ -1,50 +1,35 @@
 #include "war_state_machine.h"
 
-#include "TracyC.h"
-
 WarStateWood* wst_createGatherWoodState(WarContext* context, WarEntity* entity, WarEntityId forestId, vec2 position)
 {
-    TracyCZoneN(ctx, "wst_createGatherWoodState", true);
-
     WarStateRef ref = wst_allocState(context, WAR_STATE_WOOD, entity->id);
     if (!WAR_STATE_REF_IS_VALID(ref))
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     WarStateWood* state = (WarStateWood*)wst_deref(context, ref);
     if (!state)
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     state->forestId = forestId;
     state->position = position;
-#ifdef WAR_FRANK
     state->frankMoved = false;
-#endif
 
-    #ifdef WAR_FRANK
     // (a gather command sets the work bits afresh, 0x21184)
     we_getUnitComponent(context, entity)->frankReturning = false;
-#endif
 
-    TracyCZoneEnd(ctx);
     return state;
 }
 
 void wst_updateGatherWoodState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_updateGatherWoodState", true);
-#ifdef WAR_FRANK
     if (wai_drivesTicks(context) && !wos_atWorkCheckpoint(entity))
     {
-        TracyCZoneEnd(ctx);
         return;
     }
-#endif
 
     WarStateWood* s = (WarStateWood*)state;
 
@@ -60,14 +45,12 @@ void wst_updateGatherWoodState(WarContext* context, WarEntity* entity, WarState*
     {
         WarStateIdle* idleState = wst_createIdleState(context, entity, true);
         wst_replaceState(context, entity, (WarStateBase*)idleState, WAR_TRANSITION_CAUSE_COMPLETION);
-        TracyCZoneEnd(ctx);
         return;
     }
 
     vec2 treePosition = s->position;
     vec2 treeTile = wmap_mapToTileCoordinatesV(treePosition);
     WarTree* tree = we_getTreeAtTile(context, forest, (s32)treeTile.x, (s32)treeTile.y);
-#ifdef WAR_FRANK
     {
         // frank: the original's wood order (0x21184, 0x1CD50): the walk goes
         // to the first thing in the way on the line to the tree (0x224AC),
@@ -87,14 +70,12 @@ void wst_updateGatherWoodState(WarContext* context, WarEntity* entity, WarState*
             if (wai_drivesTicks(context))
             {
                 wmv_settle(context, entity);
-                TracyCZoneEnd(ctx);
                 return;
             }
             if (s->frankMoved)
             {
                 // the walk did not get there: the order is over
                 wst_replaceState(context, entity, (WarStateBase*)wst_createIdleState(context, entity, true), WAR_TRANSITION_CAUSE_COMPLETION);
-                TracyCZoneEnd(ctx);
                 return;
             }
             s->frankMoved = true;
@@ -102,7 +83,6 @@ void wst_updateGatherWoodState(WarContext* context, WarEntity* entity, WarState*
             WarStateMove* moveState = wst_createMoveState(context, entity, 2, arrayArg(vec2, position, wmap_tileToMapCoordinatesV(edge, true)), false);
             if (moveState) moveState->frankRange = 1;
             wst_pushState(context, entity, (WarStateBase*)moveState, WAR_TRANSITION_CAUSE_COMPLETION);
-            TracyCZoneEnd(ctx);
             return;
         }
         s32 tx = ex, ty = ey;
@@ -110,7 +90,6 @@ void wst_updateGatherWoodState(WarContext* context, WarEntity* entity, WarState*
         if (!standing && !wmv_treeAround(context, ux, uy, &tx, &ty))
         {
             wst_replaceState(context, entity, (WarStateBase*)wst_createIdleState(context, entity, true), WAR_TRANSITION_CAUSE_COMPLETION);
-            TracyCZoneEnd(ctx);
             return;
         }
         if (!standing && wai_drivesTicks(context))
@@ -118,14 +97,12 @@ void wst_updateGatherWoodState(WarContext* context, WarEntity* entity, WarState*
             s->position = wmap_tileToMapCoordinatesV(vec2i(tx, ty), true);
             s->frankMoved = false;
             wmv_settle(context, entity);
-            TracyCZoneEnd(ctx);
             return;
         }
         WarEntity* treeForest = we_getForestAtTile(context, tx, ty);
         if (!treeForest)
         {
             wst_replaceState(context, entity, (WarStateBase*)wst_createIdleState(context, entity, true), WAR_TRANSITION_CAUSE_COMPLETION);
-            TracyCZoneEnd(ctx);
             return;
         }
         if (MAX(ABS(ux - tx), ABS(uy - ty)) > 1)
@@ -134,15 +111,12 @@ void wst_updateGatherWoodState(WarContext* context, WarEntity* entity, WarState*
             s->forestId = treeForest->id;
             s->position = wmap_tileToMapCoordinatesV(vec2i(tx, ty), true);
             s->frankMoved = false;
-            TracyCZoneEnd(ctx);
             return;
         }
         WarStateChopping* chop = wst_createChoppingState(context, entity, treeForest->id, wmap_tileToMapCoordinatesV(vec2i(tx, ty), true));
         wst_replaceState(context, entity, (WarStateBase*)chop, WAR_TRANSITION_CAUSE_COMPLETION);
-        TracyCZoneEnd(ctx);
         return;
     }
-#endif
 
     if (!tree || tree->amount == 0 || !wpath_isTileAccesible(&map->finder, (s32)treeTile.x, (s32)treeTile.y))
     {
@@ -151,7 +125,6 @@ void wst_updateGatherWoodState(WarContext* context, WarEntity* entity, WarState*
         {
             WarStateIdle* idleState = wst_createIdleState(context, entity, true);
             wst_replaceState(context, entity, (WarStateBase*)idleState, WAR_TRANSITION_CAUSE_COMPLETION);
-            TracyCZoneEnd(ctx);
             return;
         }
 
@@ -164,25 +137,18 @@ void wst_updateGatherWoodState(WarContext* context, WarEntity* entity, WarState*
     {
         vec2 position = wu_getUnitCenterPosition(context, entity);
         WarStateMove* moveState = wst_createMoveState(context, entity, 2, arrayArg(vec2, position, treePosition), false);
-#ifdef WAR_FRANK
         if (moveState) moveState->frankRange = stats->range;   // next to the tree (the original's range 1)
-#endif
         wst_pushState(context, entity, (WarStateBase*)moveState, WAR_TRANSITION_CAUSE_COMPLETION);
-        TracyCZoneEnd(ctx);
         return;
     }
 
     WarStateChopping* choppingState = wst_createChoppingState(context, entity, forest->id, treePosition);
     wst_replaceState(context, entity, (WarStateBase*)choppingState, WAR_TRANSITION_CAUSE_COMPLETION);
-
-    TracyCZoneEnd(ctx);
 }
 
 
 void wst_updateWoodStates(WarContext* context)
 {
-    TracyCZoneN(ctx, "wst_updateWoodStates", true);
-
     WarEntityManager* manager = we_getEntityManager(context);
     WarStateStorage*  storage = &manager->stateStorage;
     WarStateWood*      states  = storage->wood;
@@ -201,6 +167,4 @@ void wst_updateWoodStates(WarContext* context)
 
         wst_updateGatherWoodState(context, entity, (WarStateBase*)state);
     }
-
-    TracyCZoneEnd(ctx);
 }

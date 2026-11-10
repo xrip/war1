@@ -61,30 +61,6 @@ WarSprite wspr_createFontSprite(WarContext* context, u32 width, u32 height, cons
     return sprite;
 }
 
-WarSprite wspr_createSprite(WarContext *context, u32 width, u32 height, u8 data[])
-{
-    // RGBA pixels from war1 itself: copied and owned, as upstream.
-    WarSprite sprite = (WarSprite){0};
-    assert(width <= UINT16_MAX);
-    assert(height <= UINT16_MAX);
-    sprite.frameWidth = width;
-    sprite.frameHeight = height;
-    sprite.framesCount = 1;
-    sprite.format = SDL_PIXELFORMAT_RGBA32;
-    sprite.texture = wspr_newTexture(context, SDL_PIXELFORMAT_RGBA32, NULL, width, height);
-
-    sprite.frames = (WarSpriteFrame*)wm_alloc(sizeof(WarSpriteFrame));
-    sprite.owns = WSPR_OWNS_FRAMES | WSPR_OWNS_DATA;
-    sprite.frames[0] = (WarSpriteFrame){ 0, 0, (u16)width, (u16)height, 0, (u8*)wm_alloc(width * height * 4) };
-
-    if (data)
-        memcpy(sprite.frames[0].data, data, width * height * 4);
-    if (sprite.texture)
-        SDL_UpdateTexture(sprite.texture, NULL, sprite.frames[0].data, width * 4);
-
-    return sprite;
-}
-
 WarSprite wspr_createSpriteFromFrames(WarContext *context, u32 frameWidth, u32 frameHeight, u32 frameCount, WarSpriteFrame frames[])
 {
     // RGBA frames from war1 itself (the minimap): copied and owned.
@@ -194,17 +170,6 @@ void wspr_updateSpriteImage(WarContext *context, WarSprite sprite, u8 data[])
     {
         FRANK_SetTextureCrop(sprite.texture, data[-4], data[-3], data[-2], data[-1]);
     }
-}
-
-void wspr_renderSubSprite(WarContext *context, WarSprite sprite, rect rs, rect rd, vec2 scale)
-{
-    if (!sprite.texture)
-    {
-        logWarning("Trying to render a sprite with no texture");
-        return;
-    }
-
-    wr_subImage(context, sprite.texture, rs, rd, scale);
 }
 
 void wspr_renderSprite(WarContext *context, WarSprite sprite, vec2 pos, vec2 scale)

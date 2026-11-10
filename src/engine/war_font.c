@@ -215,7 +215,6 @@ WarFontData fontsData[2] =
 
 #define getCharIndex(c) ((s32)((c) > 0 ? (c) - 32 : 0))
 
-#ifdef WAR_FRANK
 #include "port/war_fonts.h"
 
 // frank: the atlases are built in (tools/mkfonts.py), at their native size
@@ -225,22 +224,6 @@ WarSprite wfont_loadFontSprite(WarContext* context, StringView fontPath)
         return wspr_createFontSprite(context, WAR_FONT2_W, WAR_FONT2_H, war_font2, 8);
     return wspr_createFontSprite(context, WAR_FONT1_W, WAR_FONT1_H, war_font1, 8);
 }
-#else
-WarSprite wfont_loadFontSprite(WarContext* context, StringView fontPath)
-{
-    WarSprite sprite = {0};
-
-    s32 width, height, bitsPerPixel;
-    u8* data = stbi_load(wsv_data(fontPath), &width, &height, &bitsPerPixel, 0);
-    if (data)
-    {
-        sprite = wspr_createSprite(context, width, height, data);
-        stbi_image_free(data);
-    }
-
-    return sprite;
-}
-#endif
 
 WarFontData getFontData(s32 fontIndex)
 {

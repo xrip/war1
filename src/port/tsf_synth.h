@@ -14,8 +14,6 @@
 #define TSF_FALSE 0
 #define TSF_RENDER_EFFECTSAMPLEBLOCK 64
 
-enum TSFOutputMode { TSF_STEREO_INTERLEAVED, TSF_STEREO_UNWEAVED, TSF_MONO };
-
 typedef struct tsf { int open; } tsf;
 
 // tml.h reads MIDI through tsf's stream type
@@ -35,15 +33,6 @@ static inline tsf* tsf_load_filename(const char* filename)
 }
 
 static inline void tsf_close(tsf* f) { if (f) f->open = 0; plat_midi_reset(); }
-static inline void tsf_set_output(tsf* f, enum TSFOutputMode mode, int samplerate, float gain_db)
-{
-    (void)f; (void)mode; (void)samplerate; (void)gain_db;
-}
-static inline int tsf_channel_set_bank_preset(tsf* f, int channel, int bank, int preset)
-{
-    (void)f; (void)channel; (void)bank; (void)preset;
-    return 1;
-}
 static inline int tsf_channel_set_presetnumber(tsf* f, int channel, int preset, int drums)
 {
     (void)f; (void)drums;

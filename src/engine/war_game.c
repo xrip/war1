@@ -4,23 +4,8 @@
 #include <math.h>
 #include <string.h>
 
-#if defined(_MSC_VER)
-#include <intrin.h>
-#endif
-
-#if defined(_MSC_VER) && !defined(__clang__)
-#include <io.h>
-#ifndef F_OK
-#define F_OK 0
-#endif
-#define access _access
-#elif !defined(WAR_FRANK)
-#include <unistd.h>
-#endif
-
 #include "shl/memzone.h"
 #include "shl/wstr.h"
-#include "TracyC.h"
 
 #include "war_alloc.h"
 #include "war_actions.h"
@@ -476,35 +461,6 @@ static void appendCheatTextInput(WarContext* context, StringView text)
     }
 }
 
-#ifdef WAR_FRANK
-static void setWindowIcon(SDL_Window* window) { NOT_USED(window); }
-#else
-static void setWindowIcon(SDL_Window* window) {
-    // Load the PNG file. We force 4 channels (RGBA) because SDL prefers it.
-    int width, height, channels;
-    u8* pixels = stbi_load("war1.png", &width, &height, &channels, 4);
-    if (!pixels) {
-        logWarning("Failed to load icon with stb_image: %s", stbi_failure_reason());
-        return;
-    }
-
-    // Calculate the pitch (bytes per row): width * 4 bytes (RGBA)
-    int pitch = width * 4;
-
-    // Create a surface from the raw pixel data
-    // In SDL3, we use SDL_PIXELFORMAT_RGBA32 for standard 32-bit pixel arrays
-    SDL_Surface* iconSurface = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA32, pixels, pitch);
-    if (iconSurface) {
-        SDL_SetWindowIcon(window, iconSurface);
-        SDL_DestroySurface(iconSurface);
-    } else {
-        logWarning("Failed to create SDL surface for icon: %s", SDL_GetError());
-    }
-
-    stbi_image_free(pixels);
-}
-#endif
-
 static void updateMetricS32(WarMetricS32* metric, s32 newSample, s32 index)
 {
     metric->sampleSum -= metric->sample[index];
@@ -533,9 +489,7 @@ static void updateMetricU64(WarMetricU64* metric, u64 newSample, s32 index)
 
 static void cpuRelax(void)
 {
-#if defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
-    _mm_pause();
-#elif defined(_WIN32) && defined(WAR_FRANK)
+#ifdef _WIN32
     // frank: on the headless host build virtual time only advances in
     // plat_sleep_ms, so a pause-spin here would never reach the deadline
     SDL_Delay(0);
@@ -588,12 +542,10 @@ void wg_beginFrame(WarContext* context)
     {
         frameDeltaNs = 1;
     }
-#ifdef WAR_FRANK
     // frank: recording or replaying, every frame is exactly 1/60 s
     extern bool war_fixedStep;
     if (war_fixedStep)
         frameDeltaNs = 16666667;
-#endif
 
     context->realDeltaTime = (f32)ns2s(frameDeltaNs);
     context->realTime += context->realDeltaTime;
@@ -648,8 +600,6 @@ bool wg_initGame(WarContext* context)
         return false;
     }
 
-    setWindowIcon(context->window);
-
     context->renderer = SDL_CreateRenderer(context->window, NULL);
     if (!context->renderer)
     {
@@ -692,13 +642,9 @@ bool wg_initGame(WarContext* context)
     context->fontSprites[1] = wfont_loadFontSprite(context, wsv_fromCString("./war1_font_2.png"));
 
     // check if the DATA.WAR file exists
-#ifdef WAR_FRANK
     FILE* dataFile = fopen(DATAWAR_FILE_PATH, "rb");
     bool dataFileExists = dataFile != NULL;
     if (dataFile) fclose(dataFile);
-#else
-    bool dataFileExists = access(DATAWAR_FILE_PATH, F_OK) == 0;
-#endif
     if (dataFileExists)
     {
         // load DATA.WAR file
@@ -715,20 +661,13 @@ bool wg_initGame(WarContext* context)
     }
     else
     {
-#ifdef WAR_FRANK
         logError("No %s.", DATAWAR_FILE_PATH);
         return false;
-#else
-        WarScene* scene = wsc_createScene(context, WAR_SCENE_DOWNLOAD);
-        wg_setNextScene(context, scene, 0.0f);
-#endif
     }
 
     wact_initUnitActionDefs();
-#ifdef WAR_FRANK
     extern void wscr_applyOriginalScripts(WarContext* context);
     wscr_applyOriginalScripts(context);
-#endif
 
     context->frameStartNs = SDL_GetTicksNS();
     context->lastFrameStartNs = context->frameStartNs;
@@ -794,8 +733,6 @@ void wg_quitGame(WarContext* context)
 
 bool wg_loadDataFile(WarContext* context)
 {
-    TracyCZoneN(ctx, "wg_loadDataFile", true);
-
     bool skipDecompress[MAX_RESOURCES_COUNT];
     memset(skipDecompress, 0, sizeof(skipDecompress));
     for (int i = 0; i < arrayLength(assets); ++i)
@@ -803,26 +740,23 @@ bool wg_loadDataFile(WarContext* context)
         if (assets[i].type == DB_ENTRY_TYPE_UNKNOWN)
             skipDecompress[assets[i].index] = true;
     }
-#ifdef WAR_FRANK
     skipDecompress[212] = false;   // the original's unit scripts (port/scripts.c)
     for (s32 index = 199; index <= 207; index += 4)
         skipDecompress[index] = false; // terrain transitions (0x2BA0C)
-#endif
 
     context->warFile = wfile_loadWarFile(context, wsv_fromCString(DATAWAR_FILE_PATH), skipDecompress);
     if (!context->warFile)
     {
-        TracyCZoneEnd(ctx);
         return false;
     }
 
-#if defined(WAR_FRANK) && defined(WAR_MEMDEBUG)
+#ifdef WAR_MEMDEBUG
     logInfo("memdebug: sizeof WarContext %u, WarResource %u (x%d), WarFile %u, WarMap %u, WarScene %u, WarEntityManager %u, WarEntity %u, WarSprite %u",
             (unsigned)sizeof(WarContext), (unsigned)sizeof(WarResource), MAX_RESOURCES_COUNT, (unsigned)sizeof(WarFile),
             (unsigned)sizeof(WarMap), (unsigned)sizeof(WarScene), (unsigned)sizeof(WarEntityManager),
             (unsigned)sizeof(WarEntity), (unsigned)sizeof(WarSprite));
 #endif
-#if defined(WAR_FRANK) && defined(WAR_MEMDEBUG)
+#ifdef WAR_MEMDEBUG
 #define SZ(f) logInfo("memdebug: %-14s %7u", #f, (unsigned)sizeof(((WarEntityManager*)0)->f))
     SZ(entities); SZ(entitiesByType); SZ(transforms); SZ(sprites); SZ(units); SZ(animations); SZ(roads); SZ(walls); SZ(ruins);
     SZ(forests); SZ(stateMachines); SZ(stateStorage); SZ(uis); SZ(texts); SZ(rects); SZ(buttons); SZ(audios);
@@ -835,15 +769,13 @@ bool wg_loadDataFile(WarContext* context)
     for (int i = 0; i < arrayLength(assets); ++i)
     {
         DatabaseEntry entry = assets[i];
-#ifdef WAR_FRANK
         // sounds, music and level maps load on first use
         if (wres_isLazyResource(entry.index))
             continue;
         // already loaded as another resource's dependency
         if (context->resources[entry.index].type != WAR_RESOURCE_TYPE_UNKNOWN)
             continue;
-#endif
-#if defined(WAR_FRANK) && defined(WAR_MEMDEBUG)
+#ifdef WAR_MEMDEBUG
         size_t before = mz_usedSize(globalZone);
         wres_loadResource(context, &entry);
         static size_t perType[64];
@@ -851,7 +783,7 @@ bool wg_loadDataFile(WarContext* context)
         if (i == arrayLength(assets) - 1)
             for (int t = 0; t < 64; t++)
                 if (perType[t]) logInfo("memdebug: type %d: %u KB", t, (unsigned)(perType[t] >> 10));
-#elif defined(WAR_FRANK) && defined(WAR_ZONECHECK)
+#elif defined(WAR_ZONECHECK)
         wres_loadResource(context, &entry);
         if (!mz_validate(globalZone))
         {
@@ -863,7 +795,6 @@ bool wg_loadDataFile(WarContext* context)
 #endif
     }
 
-    TracyCZoneEnd(ctx);
     return true;
 }
 
@@ -884,20 +815,10 @@ void wg_setGlobalScale(WarContext* context, f32 scale)
     wg_setWindowSize(context, newWidth, newHeight);
 }
 
-void wg_changeGlobalScale(WarContext* context, f32 deltaScale)
-{
-    wg_setGlobalScale(context, context->globalScale + deltaScale);
-}
-
 void wg_setGlobalSpeed(WarContext* context, f32 speed)
 {
     context->globalSpeed = MAX(speed, 1.0f);
     logDebug("set global speed to: %.2f", context->globalSpeed);
-}
-
-void wg_changeGlobalSpeed(WarContext* context, f32 deltaSpeed)
-{
-    wg_setGlobalSpeed(context, context->globalSpeed + deltaSpeed);
 }
 
 void wg_setMusicVolume(WarContext* context, f32 volume)
@@ -906,20 +827,10 @@ void wg_setMusicVolume(WarContext* context, f32 volume)
     logDebug("set music volume to: %.2f", context->musicVolume);
 }
 
-void wg_changeMusicVolume(WarContext* context, f32 deltaVolume)
-{
-    wg_setMusicVolume(context, context->musicVolume + deltaVolume);
-}
-
 void wg_setSoundVolume(WarContext* context, f32 volume)
 {
     context->soundVolume = CLAMP(volume, 0.0f, 1.0f);
     logDebug("set sound volume to: %.2f", context->soundVolume);
-}
-
-void wg_changeSoundVolume(WarContext* context, f32 deltaVolume)
-{
-    wg_setSoundVolume(context, context->soundVolume + deltaVolume);
 }
 
 void wg_setNextScene(WarContext* context, WarScene* scene, f32 transitionDelay)
@@ -1093,8 +1004,6 @@ void wg_processGameEvent(WarContext* context, SDL_Event* event)
 
 void wg_updateGame(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateGame", 1);
-
     mz_reset(frameZone);
 
     // Drain entity removals that the audio callback thread queued while we were
@@ -1128,7 +1037,6 @@ void wg_updateGame(WarContext* context)
         // Allow scrolling and cheat panel input even while the simulation is frozen.
         if (context->map)
             wmap_updateMapPaused(context);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1141,9 +1049,7 @@ void wg_updateGame(WarContext* context)
         else if (context->map)
             wmap_leaveMap(context);
 
-#ifdef WAR_FRANK
         wres_unloadLazyResources(context);
-#endif
         context->scene = context->nextScene;
         context->nextScene = NULL;
 
@@ -1160,9 +1066,7 @@ void wg_updateGame(WarContext* context)
         else if (context->map)
             wmap_leaveMap(context);
 
-#ifdef WAR_FRANK
         wres_unloadLazyResources(context);
-#endif
         context->map = context->nextMap;
         context->nextMap = NULL;
 
@@ -1173,7 +1077,6 @@ void wg_updateGame(WarContext* context)
 
     if (context->realTime < context->transitionEndRealTime)
     {
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1189,14 +1092,10 @@ void wg_updateGame(WarContext* context)
     {
         logError("There is no map or scene active.");
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void wg_renderGame(WarContext *context)
 {
-    TracyCZoneN(ctx, "RenderGame", 1);
-
     // Clear the screen (black)
     SDL_SetRenderDrawColor(context->renderer, 0, 0, 0, 255);
     SDL_RenderClear(context->renderer);
@@ -1204,7 +1103,6 @@ void wg_renderGame(WarContext *context)
     // don't render anything if it's transitioning
     if (context->realTime < context->transitionEndRealTime)
     {
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1223,8 +1121,6 @@ void wg_renderGame(WarContext *context)
     }
 
     imui_end(context);
-
-    TracyCZoneEnd(ctx);
 }
 
 void wg_presentGame(WarContext *context)
@@ -1235,17 +1131,7 @@ void wg_presentGame(WarContext *context)
 
     context->frameWorkEndNs = SDL_GetTicksNS();
 
-    TracyCZoneN(waitCtx, "FrameWait", 1);
-#ifdef FRANK_BOARD
-    // frank: the board's display paces the game (presenting waits only when
-    // two frames are queued, 60 Hz): sleeping to a deadline here as well
-    // would keep the game from drawing a frame ahead to absorb a slow one
-    NOT_USED(targetFrameEndNs);
-    context->frameEndNs = SDL_GetTicksNS();
-#else
     context->frameEndNs = waitUntilFrameDeadlineNs(targetFrameEndNs);
-#endif
-    TracyCZoneEnd(waitCtx);
 
     s32 index = context->frameCount % METRIC_SAMPLE_COUNT;
     u64 workTimeNs = context->frameWorkEndNs - context->frameStartNs;
@@ -1262,7 +1148,4 @@ void wg_presentGame(WarContext *context)
         fps = (s32)((f64)context->frameTimeMetric.sampleCount * 1000000000.0 / (f64)context->frameTimeMetric.sampleSum);
     }
     updateMetricS32(&context->fpsMetric, fps, index);
-
-    TracyCPlotI("FPS", (s64)context->fpsMetric.avg);
-    TracyCPlotF("DT", (f32)ns2ms(context->frameTimeMetric.avg));
 }

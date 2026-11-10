@@ -35,11 +35,7 @@
 #define WMV_MARK_NEAR   0x40
 #define WMV_MARK_BEYOND 0x80
 
-#ifdef FRANK_BOARD
-#define WMV_BSS __attribute__((section(".psram_bss")))
-#else
 #define WMV_BSS
-#endif
 
 extern bool wscr_walkScript(WarUnitType type, const u8** data, u32* length, u32* start);
 
@@ -98,14 +94,12 @@ void wmv_setTerrain(const u16* data)
         wmv_treeUp[i] = (data[i] & 0x80) != 0;
         if (data[i] & 0x80) wmv_trees[wmv_treeCount++] = (u16)i;
     }
-#ifndef FRANK_BOARD
     if (getenv("WAR_TERRAINDUMP"))
     {
         s32 hist[16] = {0};
         for (s32 i = 0; i < WMV_TILES; i++) for (s32 b = 0; b < 16; b++) if (data[i] & (1 << b)) hist[b]++;
         for (s32 b = 0; b < 16; b++) if (hist[b]) fprintf(stderr, "terrain bit %04x: %d\n", 1 << b, hist[b]);
     }
-#endif
     wmv_map = NULL;
 }
 
@@ -221,11 +215,9 @@ void wmv_damageTerrain(WarContext* context, s32 x, s32 y, u8 damage)
         before[i] = wmv_inside(x, y + i - 1) ? wmv_visual[(y + i - 1) * WMV_W + x] : 0;
     WarOriginalRuntime runtime = { .error = wmv_terrainError };
     if (wor_damageTerrain(&runtime, &wmv_terrainState, x, y, damage) == WOR_ERROR) return;
-#ifndef FRANK_BOARD
     if (getenv("WAR_TERRAINDEBUG"))
         fprintf(stderr, "terrain tick %u at %d,%d damage %u visual %04x -> %04x flags %03x\n",
                 wrng_tick, x, y, damage, before[1], wmv_visual[y * WMV_W + x], wmv_terrain[y * WMV_W + x]);
-#endif
     for (s32 i = 0; i < 3; i++)
     {
         const s32 ty = y + i - 1;
@@ -339,11 +331,9 @@ static bool wmv_walkingOn(WarContext* context, WarEntity* o)
     if (!r) return wmv_activeMove(context, o) && u->wmvBlocks == 0;
     const bool orig = (r->flags & WOR_INACTIVE) ? r->type <= 31
         : wmv_activeMove(context, o) && !u->wmvBlocks && !(r->flags & WOR_HELD);
-#ifndef FRANK_BOARD
     if (getenv("WAR_WALKDEBUG") && orig != (wmv_activeMove(context, o) && u->wmvBlocks == 0))
         fprintf(stderr, "walkdiff tick %u id %u type %d current %u flags %04x blocks %d hp %d\n",
                 wrng_tick, (unsigned)o->id, u->type, r->current, r->flags, u->wmvBlocks, u->hp);
-#endif
     return orig;
 }
 
@@ -540,17 +530,11 @@ static bool wmv_plan(WarContext* context, WarEntity* e, WarUnitComponent* u, War
         wmv_markNear(gx - 1, gy - 1, 3, 3);
     }
 
-#ifndef FRANK_BOARD
     static s32 debugId = -2;
     if (debugId == -2) debugId = getenv("WAR_MOVEDEBUG") ? atoi(getenv("WAR_MOVEDEBUG")) : -1;
     const bool debug = debugId == (s32)e->id;
 #define WMV_DEBUG(...) do { if (debug) fprintf(stderr, __VA_ARGS__); } while (0)
-#else
-    const bool debug = false;
-#define WMV_DEBUG(...) do { } while (0)
-#endif
     WMV_DEBUG("plan %d,%d -> %d,%d target %d\n", p.sx, p.sy, gx, gy, target ? (s32)target->id : 0);
-#ifndef FRANK_BOARD
     if (debug)
     {
         for (s32 y = MAX(p.sy - 3, 0); y <= MIN(p.sy + 3, MAP_TILES_HEIGHT - 1); y++)
@@ -564,7 +548,6 @@ static bool wmv_plan(WarContext* context, WarEntity* e, WarUnitComponent* u, War
             fprintf(stderr, "   (x %d..)\n", MAX(p.sx - 3, 0));
         }
     }
-#endif
     if (wmv_trace(&p) || p.count >= WMV_PATH)
     {
         WMV_DEBUG("  line free, %d steps\n", p.count);
@@ -692,11 +675,9 @@ static void wmv_prepareWork(WarContext* context, WarEntity* entity, WarStateBase
     }
     WarStateMove* move = wst_createMoveState(context, entity, 2,
         arrayArg(vec2, wu_getUnitCenterPosition(context, entity), wmap_tileToMapCoordinatesV(goal, true)), false);
-#ifndef FRANK_BOARD
     if (getenv("WAR_SCRIPTWATCH") && atoi(getenv("WAR_SCRIPTWATCH")) == (s32)entity->id)
         fprintf(stderr, "prepareWork tick %u state %d here %d,%d goal %d,%d move %p\n", wrng_tick, state->type,
                 (s32)here.x, (s32)here.y, (s32)goal.x, (s32)goal.y, (void*)move);
-#endif
     if (!move) return;
     move->frankTarget = target ? target->id : 0;
     move->frankRange = 1;
@@ -1025,7 +1006,6 @@ static void wmv_runScript(WarContext* context, WarEntity* e, WarUnitComponent* u
 static void wmv_tickBegin(WarContext* context)
 {
     wmv_buildGrids(context);
-#ifndef FRANK_BOARD
     {   // WAR_VISUALAT=x,y,w,h: the terrain and visual words of a region, once
         static bool shown;
         const char* at = getenv("WAR_VISUALAT");
@@ -1040,7 +1020,6 @@ static void wmv_tickBegin(WarContext* context)
             fprintf(stderr, "\n");
         }
     }
-#endif
 }
 
 // One unit's walk this tick, in its turn of the unit table.
@@ -1206,9 +1185,7 @@ bool wmv_placeFree(WarContext* context, WarUnitType type, s32 x, s32 y)
         for (s32 tx = x; tx < x + w; tx++)
             if (wmv_haveTerrain && (wmv_terrain[ty * WMV_W + tx] & mask))
             {
-#ifndef FRANK_BOARD
                 if (getenv("WAR_MOVEDEBUG")) fprintf(stderr, "  terrain %04x at %d,%d\n", wmv_terrain[ty * WMV_W + tx], tx, ty);
-#endif
                 return false;
             }
     WarEntityManager* manager = we_getEntityManager(context);
@@ -1226,9 +1203,7 @@ bool wmv_placeFree(WarContext* context, WarUnitType type, s32 x, s32 y)
         }
         if (ux < x + w && x < ux + uw && uy < y + h && y < uy + uh)
         {
-#ifndef FRANK_BOARD
             if (getenv("WAR_MOVEDEBUG")) fprintf(stderr, "  under type %d at %d,%d size %d,%d\n", u->type, ux, uy, uw, uh);
-#endif
             return false;
         }
     }

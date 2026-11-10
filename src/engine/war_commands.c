@@ -34,14 +34,12 @@ static bool wcmd_tryPlaceBuilding(WarContext* context, WarEntity* worker, WarPla
         return false;
     }
 
-#ifdef WAR_FRANK
     // the original's unit table full: nothing is placed (0x2E740 fails)
     if (wai_drivesTicks(context) && !wos_hasFreeRecord(context))
     {
         wmui_setFlashStatus(context, 1.5f, wstr_fromCString("CANNOT CREATE MORE UNITS"));
         return false;
     }
-#endif
 
     if (!we_decreasePlayerResources(context, player, stats->goldCost, stats->woodCost))
     {
@@ -81,8 +79,6 @@ static bool wcmd_tryPlaceBuilding(WarContext* context, WarEntity* worker, WarPla
 
 void wcmd_executeMoveCommand(WarContext* context, vec2 targetPosition)
 {
-    TracyCZoneN(ctx, "wcmd_executeMoveCommand", 1);
-
     WarMap* map = context->map;
     WarInput* input = &context->input;
     WarPathFinder* finder = &map->finder;
@@ -92,7 +88,6 @@ void wcmd_executeMoveCommand(WarContext* context, vec2 targetPosition)
     s32 selEntitiesCount = map->selectedEntities.count;
     if (selEntitiesCount == 0)
     {
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -101,7 +96,6 @@ void wcmd_executeMoveCommand(WarContext* context, vec2 targetPosition)
     if (!flowField)
     {
         logWarning("Failed to compute flow field for move command at tile (%.2f, %.2f)", targetTile.x, targetTile.y);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -178,8 +172,6 @@ void wcmd_executeMoveCommand(WarContext* context, vec2 targetPosition)
         assert(player);
         wa_playAcknowledgementSound(context, player);
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void wcmd_executeFollowCommand(WarContext* context, WarEntity* targetEntity)
@@ -264,13 +256,7 @@ void wcmd_executeHarvestCommand(WarContext* context, WarEntity* targetEntity, ve
                 if (wu_isCarryingResources(context, entity))
                 {
                     // find the closest town hall to deliver the gold
-                    WarRace race = wu_getUnitRace(context, entity);
-                    WarUnitType townHallType = wu_getTownHallOfRace(race);
-#ifdef WAR_FRANK
                     WarEntity* townHall = wai_homeHall(context, entity);
-#else
-                    WarEntity* townHall = we_findClosestUnitOfType(context, entity, townHallType);
-#endif
                     if (townHall)
                     {
                         WarStateDeliver* deliverState = wst_createDeliverState(context, entity, townHall->id);
@@ -343,18 +329,8 @@ void wcmd_executeDeliverCommand(WarContext* context, WarEntity* targetEntity)
             WarEntity* townHall = targetEntity;
             if (!townHall)
             {
-                WarRace race = wu_getUnitRace(context, entity);
-                WarUnitType townHallType = wu_getTownHallOfRace(race);
-#ifdef WAR_FRANK
                 townHall = wai_homeHall(context, entity);
-#else
-                townHall = we_findClosestUnitOfType(context, entity, townHallType);
-#endif
-#ifdef WAR_FRANK
                 if (!townHall) continue;   // (no hall left to return to: the order does nothing)
-#else
-                assert(townHall);
-#endif
             }
 
             if (wu_isWorkerUnit(context, entity) && wu_isCarryingResources(context, entity))
@@ -453,7 +429,6 @@ void wcmd_executeSummonCommand(WarContext* context, WarUnitCommandType summonTyp
         if (wu_isConjurerOrWarlockUnit(context, entity) &&
             wst_canSubmitTransition(context, entity, WAR_INTERRUPT_PLAYER_ORDER))
         {
-#ifdef WAR_FRANK
             if (wai_drivesTicks(context))
             {
                 // Player summons queue the spell followed by idle, and act
@@ -465,7 +440,6 @@ void wcmd_executeSummonCommand(WarContext* context, WarUnitCommandType summonTyp
                     logError("original kernel: failed summon command for entity %u", entity->id);
                 continue;
             }
-#endif
             WarUnitComponent* unit = we_getUnitComponent(context, entity);
 
             // when the unit summon another unit, it is not invisible anymore
@@ -496,9 +470,7 @@ void wcmd_executeSummonCommand(WarContext* context, WarUnitCommandType summonTyp
                 wpath_setStaticEntity(&map->finder, (s32)spawnTile.x, (s32)spawnTile.y, (s32)unitSize.x, (s32)unitSize.y, summonedUnit->id);
 
                 WarEntity* animEntity = we_createEntity(context, WAR_ENTITY_TYPE_ANIMATION, true);
-#ifdef WAR_FRANK
                 we_addAnimationsComponent(context, animEntity);   // frank: it asserted
-#endif
                 wanim_createSpellAnimation(context, animEntity, wmap_tileToMapCoordinatesV(spawnTile, true));
 
                 casted = true;
@@ -706,7 +678,6 @@ void wcmd_executeAttackCommand(WarContext* context, WarEntity* targetEntity, vec
                     }
                 }
             }
-#ifdef WAR_FRANK
             else if (wai_drivesTicks(context))
             {
                 const vec2 tile = wmap_mapToTileCoordinatesV(targetPosition);
@@ -720,7 +691,6 @@ void wcmd_executeAttackCommand(WarContext* context, WarEntity* targetEntity, vec
                     isGoingToAttack = true;
                 }
             }
-#endif
             else
             {
                 WarStateAttack* attackState = wst_createAttackState(context, entity, 0, targetPosition);
@@ -952,11 +922,7 @@ bool wcmd_executeCommand(WarContext* context)
                 if (we_checkFarmFood(context, player) &&
                     we_enoughPlayerResources(context, player, stats->goldCost, stats->woodCost))
                 {
-#ifdef WAR_FRANK
                     WarStateTrain* trainState = wst_createTrainState(context, selectedEntity, unitToTrain, wu_unitTrainSeconds(stats), stats->goldCost, stats->woodCost, NULL);
-#else
-                    WarStateTrain* trainState = wst_createTrainState(context, selectedEntity, unitToTrain, (f32)stats->buildTime, stats->goldCost, stats->woodCost, NULL);
-#endif
                     wst_resetState(context, selectedEntity, (WarStateBase*)trainState, WAR_TRANSITION_CAUSE_PLAYER_ORDER);
                 }
             }

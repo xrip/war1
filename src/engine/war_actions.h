@@ -13,7 +13,6 @@ struct _WarUnitActionStep
 
 #define WarUnitActionStepEmpty (WarUnitActionStep){WAR_ACTION_STEP_NONE}
 
-bool wact_equalsActionStep(const WarUnitActionStep step1, const WarUnitActionStep step2);
 
 shlDeclareList(WarUnitActionStepList, WarUnitActionStep)
 
@@ -23,9 +22,7 @@ struct _WarUnitActionDef
     bool directional;
     bool loop;
     WarUnitActionStepList steps;
-#ifdef WAR_FRANK
     bool frankTicks;   // waits in the original's game ticks (port/scripts.c)
-#endif
 };
 
 struct _WarUnitAction

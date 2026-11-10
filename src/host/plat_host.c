@@ -185,7 +185,7 @@ static void run_script(const uint16_t *shown) {
         if ((long)frame_no < pending_frame) break;
         char cmd[16] = "", a[200] = "";
         int x = 0, y = 0;
-        sscanf(pending, "%*ld %15s %199[^\n]", cmd, a);
+        sscanf(pending, "%*s %15s %199[^\n]", cmd, a);
         fflush(stdout);
         if (!strcmp(cmd, "move") && sscanf(a, "%d %d", &x, &y) == 2) {
             mx = x; my = y;

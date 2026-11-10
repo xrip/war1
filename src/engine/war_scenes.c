@@ -4,16 +4,11 @@
 #include "war_cheats.h"
 #include "war_scene_blizzard.h"
 #include "war_scene_briefing.h"
-#include "war_scene_download.h"
 #include "war_scene_menu.h"
 
 WarSceneDescriptor sceneDescriptors[WAR_SCENE_COUNT] =
 {
-#ifdef WAR_FRANK // frank: no network; a missing DATA.WAR is the board's error screen
     { WAR_SCENE_DOWNLOAD,   NULL,                   NULL, NULL,                    NULL,                    NULL                    },
-#else
-    { WAR_SCENE_DOWNLOAD,   wsc_enterSceneDownload, NULL, wsc_updateSceneDownload, wsc_renderSceneDownload, NULL                    },
-#endif
     { WAR_SCENE_BLIZZARD,   wsc_enterSceneBlizzard, NULL, wsc_updateSceneBlizzard, wsc_renderSceneBlizzard, NULL                    },
     { WAR_SCENE_MAIN_MENU,  wsc_enterSceneMainMenu, NULL, NULL,                    wsc_renderSceneMainMenu, NULL                   },
     { WAR_SCENE_BRIEFING,   wsc_enterSceneBriefing, NULL, wsc_updateSceneBriefing, wsc_renderSceneBriefing, wsc_renderOverlayBriefing }
@@ -35,10 +30,8 @@ void wsc_freeScene(WarScene* scene)
     WarEntityMapFree(&manager->entitiesByType);
     WarUnitMapFree(&manager->unitsByType);
     WarEntityIdMapFree(&manager->entitiesById);
-#ifdef WAR_FRANK
     free(manager->slotById);
     manager->slotById = NULL;
-#endif
     WarEntityListFree(&manager->uiEntities);
 
     wstr_free(scene->cheatStatus.debugText);
@@ -63,14 +56,11 @@ void wsc_enterScene(WarContext* context)
 
 void wsc_updateScene(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateScene", 1);
-
     WarScene* scene = context->scene;
 
     if (!inRange(scene->type, WAR_SCENE_DOWNLOAD, WAR_SCENE_COUNT))
     {
         logError("Unkown scene type: %d", scene->type);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -84,8 +74,6 @@ void wsc_updateScene(WarContext* context)
         wcheatp_updateCheatsPanel(context);
         wanim_updateAnimations(context);
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void wsc_leaveScene(WarContext* context)
@@ -107,22 +95,16 @@ void wsc_leaveScene(WarContext* context)
     }
     else
     {
-#ifdef WAR_FRANK
         // frank: free the scene, not only its indices (1.2 MB each)
         we_removeAllEntities(context);
         wsc_freeScene(context->scene);
         wm_free(context->scene);
-#else
-        wsc_freeScene(context->scene);
-#endif
         context->scene = NULL;
     }
 }
 
 void wsc_renderScene(WarContext* context)
 {
-    TracyCZoneN(ctx, "RenderScene", 1);
-
     WarScene* scene = context->scene;
     WarSceneFunc renderSceneFunc = sceneDescriptors[scene->type].renderSceneFunc;
     if (renderSceneFunc)
@@ -163,6 +145,4 @@ void wsc_renderScene(WarContext* context)
 
     // Cheat panel (imui) — only renders if cheatStatus.enabled is true for this scene.
     wcheatp_renderCheatsPanel(context);
-
-    TracyCZoneEnd(ctx);
 }

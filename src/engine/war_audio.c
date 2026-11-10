@@ -1,7 +1,6 @@
 #include <assert.h>
 
 #include "SDL3/SDL.h"
-#include "TracyC.h"
 
 #include "war_audio.h"
 #include "war_entities.h"
@@ -480,12 +479,6 @@ bool wa_initAudio(WarContext* context)
         logError("Could not load SoundFont at %s", "GMGeneric.SF2");
         return false;
     }
-
-    //Initialize preset on special 10th MIDI channel to use percussion sound bank (128) if available
-    tsf_channel_set_bank_preset(context->soundFont, 9, 128, 0);
-
-    // Set the SoundFont rendering output mode
-    tsf_set_output(context->soundFont, TSF_MONO, PLAYBACK_FREQ, 0.0f);
 
     // Pre-allocate the mix buffer on the main thread before audio starts.
     // This ensures the audio callback thread never needs to call wm_calloc

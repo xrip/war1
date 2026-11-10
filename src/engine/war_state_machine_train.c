@@ -5,8 +5,6 @@
 #include "war_ai.h"
 #include "war_audio.h"
 
-#include "TracyC.h"
-
 static bool wst_applyTrainTransaction(WarContext* context, WarUnitComponent* unit, WarStateTrain* state)
 {
     WarPlayerInfo* player = &context->map->players[unit->player];
@@ -27,19 +25,15 @@ static bool wst_applyTrainTransaction(WarContext* context, WarUnitComponent* uni
 
 WarStateTrain* wst_createTrainState(WarContext* context, WarEntity* entity, WarUnitType unitToBuild, f32 buildTime, s32 goldCost, s32 woodCost, WarAICommand* aiCommand)
 {
-    TracyCZoneN(ctx, "wst_createTrainState", true);
-
     WarStateRef ref = wst_allocState(context, WAR_STATE_TRAIN, entity->id);
     if (!WAR_STATE_REF_IS_VALID(ref))
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     WarStateTrain* state = (WarStateTrain*)wst_deref(context, ref);
     if (!state)
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
@@ -53,23 +47,18 @@ WarStateTrain* wst_createTrainState(WarContext* context, WarEntity* entity, WarU
     state->outputCommitted = false;
     state->cancelled = false;
     state->alreadyRefunded = false;
-#ifdef WAR_FRANK
     // the original's order 15 (0x143CC): taken on the think's tick, its
     // first checkpoint 11 ticks on, then one every 9, two to each of the
     // unit's steps, the unit made at the second after the last: 18 a step
     // and 20 (war1's time here is 18 a step and 27)
     state->frankTotal = MAX((s32)(buildTime / 0.03f + 0.5f) - 7, 1);
     state->frankTicks = state->frankTotal;
-#endif
 
-    TracyCZoneEnd(ctx);
     return state;
 }
 
 void wst_enterTrainState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_enterTrainState", true);
-
     WarMap* map = context->map;
     assert(map);
 
@@ -82,7 +71,6 @@ void wst_enterTrainState(WarContext* context, WarEntity* entity, WarState* state
     {
         s->cancelled = true;
         wst_popState(context, entity, WAR_TRANSITION_CAUSE_COMPLETION, WAR_STATE_RESULT_CANCELLED);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -95,14 +83,10 @@ void wst_enterTrainState(WarContext* context, WarEntity* entity, WarState* state
 
     unit->building = true;
     unit->buildPercent = 0;
-
-    TracyCZoneEnd(ctx);
 }
 
 void wst_exitTrainState(WarContext* context, WarEntity* entity, WarState* state, WarStateExitReason reason)
 {
-    TracyCZoneN(ctx, "wst_exitTrainState", true);
-
     NOT_USED(reason);
 
     WarMap* map = context->map;
@@ -125,7 +109,6 @@ void wst_exitTrainState(WarContext* context, WarEntity* entity, WarState* state,
 
     if (!s->transactionApplied)
     {
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -137,14 +120,10 @@ void wst_exitTrainState(WarContext* context, WarEntity* entity, WarState* state,
     wpath_setFreeTiles(&map->finder, (s32)position.x, (s32)position.y, (s32)unitSize.x, (s32)unitSize.y);
 
     unit->building = false;
-
-    TracyCZoneEnd(ctx);
 }
 
 void wst_updateTrainState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_updateTrainState", true);
-
     WarMap* map = context->map;
     assert(map);
 
@@ -156,25 +135,20 @@ void wst_updateTrainState(WarContext* context, WarEntity* entity, WarState* stat
     if (s->cancelled)
     {
         wst_popState(context, entity, WAR_TRANSITION_CAUSE_COMPLETION, WAR_STATE_RESULT_CANCELLED);
-        TracyCZoneEnd(ctx);
         return;
     }
 
     if (s->outputCommitted)
     {
-        TracyCZoneEnd(ctx);
         return;
     }
 
-#ifdef WAR_FRANK
     if (wai_drivesTicks(context))
     {
         // the AI's tick counts it down (wst_frankTrainTick)
         unit->buildPercent = PERCENTF01((f32)(s->frankTotal - s->frankTicks), (f32)s->frankTotal);
-        TracyCZoneEnd(ctx);
         return;
     }
-#endif
     f32 trainSpeed = context->gameDeltaTime;
 
     if (map->hurryUp)
@@ -210,19 +184,14 @@ void wst_updateTrainState(WarContext* context, WarEntity* entity, WarState* stat
             wa_createAudio(context, CREATE_AUDIO_ARGS_INIT(.audioId=audioId, .loop=false));
         }
 
-        TracyCZoneEnd(ctx);
         return;
     }
 
     unit->buildPercent = PERCENTF01(s->buildTime, s->totalBuildTime);
-
-    TracyCZoneEnd(ctx);
 }
 
 void wst_updateTrainStates(WarContext* context)
 {
-    TracyCZoneN(ctx, "wst_updateTrainStates", true);
-
     WarEntityManager* manager = we_getEntityManager(context);
     WarStateStorage*  storage = &manager->stateStorage;
     WarStateTrain*      states  = storage->train;
@@ -241,11 +210,8 @@ void wst_updateTrainStates(WarContext* context)
 
         wst_updateTrainState(context, entity, (WarStateBase*)state);
     }
-
-    TracyCZoneEnd(ctx);
 }
 
-#ifdef WAR_FRANK
 // frank: one tick of training, in the building's turn of the unit table;
 // the unit comes out on the first free tile round the building from its
 // top left corner (0x2E740).
@@ -296,4 +262,3 @@ void wst_frankTrainTick(WarContext* context, WarEntity* entity, WarStateBase* st
         wa_createAudio(context, CREATE_AUDIO_ARGS_INIT(.audioId=audioId, .loop=false));
     }
 }
-#endif

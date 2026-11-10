@@ -1193,23 +1193,13 @@ typedef enum _WarMapSpeed
 
 typedef enum _WarSceneType
 {
-    WAR_SCENE_DOWNLOAD,
+    WAR_SCENE_DOWNLOAD, // upstream's, unused; the state hash uses these numbers
     WAR_SCENE_BLIZZARD,
     WAR_SCENE_MAIN_MENU,
     WAR_SCENE_BRIEFING,
 
     WAR_SCENE_COUNT
 } WarSceneType;
-
-typedef enum _WarSceneDownloadState
-{
-    WAR_SCENE_DOWNLOAD_DOWNLOAD,
-    WAR_SCENE_DOWNLOAD_CONFIRM,
-    WAR_SCENE_DOWNLOAD_DOWNLOADING,
-    WAR_SCENE_DOWNLOAD_DOWNLOADED,
-    WAR_SCENE_DOWNLOAD_FILE_LOADED,
-    WAR_SCENE_DOWNLOAD_FAILED,
-} WarSceneDownloadState;
 
 typedef enum _WarMainMenuPanel
 {
@@ -1262,7 +1252,6 @@ typedef enum _WarDebugRenderFlag
     WAR_DEBUG_RENDER_FONT,
     WAR_DEBUG_RENDER_PROJECTILES,
     WAR_DEBUG_RENDER_FLOW_FIELD,
-    WAR_DEBUG_RENDER_RVO,
     WAR_DEBUG_RENDER_STATE_MACHINE,
     WAR_DEBUG_RENDER_COUNT
 } WarDebugRenderFlag;

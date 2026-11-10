@@ -4,36 +4,27 @@
 #include "war_map.h"
 #include "war_units.h"
 
-#include "TracyC.h"
-
 WarStateIdle* wst_createIdleState(WarContext* context, WarEntity* entity, bool lookAround)
 {
-    TracyCZoneN(ctx, "wst_createIdleState", true);
-
     WarStateRef ref = wst_allocState(context, WAR_STATE_IDLE, entity->id);
     if (!WAR_STATE_REF_IS_VALID(ref))
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     WarStateIdle* state = (WarStateIdle*)wst_deref(context, ref);
     if (!state)
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     state->lookAround = lookAround;
 
-    TracyCZoneEnd(ctx);
     return state;
 }
 
 void wst_enterIdleState(WarContext* context, WarEntity* entity, WarStateBase* state)
 {
-    TracyCZoneN(ctx, "wst_onEnterIdleState", true);
-
     NOT_USED(entity);
     NOT_USED(state);
 
@@ -46,20 +37,14 @@ void wst_enterIdleState(WarContext* context, WarEntity* entity, WarStateBase* st
         vec2 unitSize = wu_getUnitSize(context, entity);
         wpath_setStaticEntity(&map->finder, (s32)tile.x, (s32)tile.y, (s32)unitSize.x, (s32)unitSize.y, entity->id);
         wact_setAction(context, entity, WAR_ACTION_TYPE_IDLE, true, 1.0f);
-#ifdef WAR_FRANK
         WarUnitComponent* unit = we_getUnitComponent(context, entity);
         if (wai_drivesTicks(context) && !unit->frankIdleOn && !wu_isCorpseUnitType(unit->type))
             wos_select(context, entity, unit->player == 4 ? 29 : 2, 1);
-#endif
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void wst_exitIdleState(WarContext* context, WarEntity* entity, WarStateBase* state, WarStateExitReason reason)
 {
-    TracyCZoneN(ctx, "wst_exitIdleState", true);
-
     NOT_USED(state);
     NOT_USED(reason);
 
@@ -72,29 +57,22 @@ void wst_exitIdleState(WarContext* context, WarEntity* entity, WarStateBase* sta
         vec2 tile = wu_getUnitTile(context, entity);
         wpath_setFreeTiles(&map->finder, (s32)tile.x, (s32)tile.y, (s32)unitSize.x, (s32)unitSize.y);
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void wst_updateIdleState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_updateIdleState", true);
-
     WarMap* map = context->map;
 
     WarStateIdle* s = (WarStateIdle*)state;
 
-#ifdef WAR_FRANK
     // frank: with the original's AI running, an idle computer unit does what
     // the original's think says (port/ai.c), not war1's own idle rules
     extern bool wai_ownsIdle(WarContext* context, WarEntity* entity);
     if (wu_isUnit(entity) && wai_ownsIdle(context, entity))
     {
         state->delay = 1.0f;
-        TracyCZoneEnd(ctx);
         return;
     }
-#endif
     if (wu_isUnit(entity))
     {
         if (s->lookAround)
@@ -142,14 +120,10 @@ void wst_updateIdleState(WarContext* context, WarEntity* entity, WarState* state
                 wpath_setStaticEntity(&map->finder, piece->tilex, piece->tiley, 1, 1, entity->id);
         }
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void wst_updateIdleStates(WarContext* context)
 {
-    TracyCZoneN(ctx, "wst_updateIdleStates", true);
-
     WarEntityManager* manager = we_getEntityManager(context);
     WarStateStorage*  storage = &manager->stateStorage;
     WarStateIdle*     states  = storage->idle;
@@ -168,6 +142,4 @@ void wst_updateIdleStates(WarContext* context)
 
         wst_updateIdleState(context, entity, (WarStateBase*)state);
     }
-
-    TracyCZoneEnd(ctx);
 }

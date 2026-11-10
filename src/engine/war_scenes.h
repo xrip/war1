@@ -15,11 +15,6 @@ struct _WarScene
     {
         struct
         {
-            WarSceneDownloadState status;
-        } download;
-
-        struct
-        {
             f64 endRealTime;
         } blizzard;
 

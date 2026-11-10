@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <float.h>
 
-#include "TracyC.h"
 #include "shl/memzone.h"
 #include "shl/wstr.h"
 
@@ -22,7 +21,6 @@
 #include "war_state_machine_debug.h"
 #include "war_units.h"
 #include "war_pathfinder.h"
-#include "war_rvo.h"
 
 #define MAP_SELECTION_DRAG_THRESHOLD 3.0f
 
@@ -198,30 +196,17 @@ static void initCamera(WarMap *map, WarResource *levelInfo)
 
 static void initPathFinder(WarMap* map, WarResource* levelPassable)
 {
-#ifdef WAR_FRANK
     wpath_initPathFinderAt(&map->finder, levelPassable->levelPassable.data);
     wmv_setTerrain(levelPassable->levelPassable.data);
-#else
-    map->finder = wpath_initPathFinder(levelPassable->levelPassable.data);
-#endif
 }
 
 static void initBlackSprite(WarContext* context, WarMap* map)
 {
-#ifdef WAR_FRANK
     // frank: 8-bit (the fast blitter path), every pixel colour 1 = black
     static u8 blackPixels[MEGA_TILE_WIDTH * MEGA_TILE_HEIGHT];
     static const u16 blackLut[256] = {0};
     memset(blackPixels, 1, sizeof(blackPixels));
     map->blackSprite = wspr_createIndexedSprite(context, MEGA_TILE_WIDTH, MEGA_TILE_HEIGHT, blackPixels, blackLut);
-    return;
-#endif
-    u8 data[MEGA_TILE_WIDTH * MEGA_TILE_HEIGHT * 4];
-    memset(data, 0, MEGA_TILE_WIDTH * MEGA_TILE_HEIGHT * 4);
-    for (s32 i = 0; i < MEGA_TILE_WIDTH * MEGA_TILE_HEIGHT; i++)
-        data[4 * i + 3] = 255;
-
-    map->blackSprite = wspr_createSprite(context, MEGA_TILE_WIDTH, MEGA_TILE_HEIGHT, data);
 }
 
 static void setInitialTileState(WarMap* map)
@@ -259,11 +244,7 @@ static void createMapAndMinimapSprites(WarContext* context, WarMap* map, WarReso
     //     printf("\n");
     // }
 
-#ifdef WAR_FRANK
     map->sprite = wspr_createIndexedSprite(context, TILESET_WIDTH, TILESET_HEIGHT, tileset->tilesetData.data, tileset->tilesetData.lut);
-#else
-    map->sprite = wspr_createSprite(context, TILESET_WIDTH, TILESET_HEIGHT, tileset->tilesetData.data);
-#endif
 
     // the minimap sprite will be a 2 frames sprite
     // the first one will be the frame that actually render
@@ -308,12 +289,8 @@ static void createForestEntities(WarContext* context, WarMap* map, WarResource* 
     const s32 dirX[] = {  0,  1, 1, 1, 0, -1, -1, -1 };
     const s32 dirY[] = { -1, -1, 0, 1, 1,  1,  0, -1 };
 
-#ifdef WAR_FRANK
     // frank: 4 KB off the board's stack
     static bool processed[MAP_TILES_WIDTH * MAP_TILES_HEIGHT];
-#else
-    bool processed[MAP_TILES_WIDTH * MAP_TILES_HEIGHT];
-#endif
     for(s32 i = 0; i < MAP_TILES_WIDTH * MAP_TILES_HEIGHT; i++)
         processed[i] = false;
 
@@ -437,13 +414,11 @@ static void initPlayersInfo(WarMap* map, WarResource* levelInfo)
 
         player->index = (u8)i;
         player->race = levelInfo->levelInfo.races[i];
-#ifdef WAR_FRANK
         // frank: the player is its campaign's side; two levels' headers give
         // player 0 the enemy's race (human 6, orc 7), which left its own farms
         // uncounted for food
         if (i == 0 && map->levelInfoIndex >= WAR_CAMPAIGN_HUMANS_01 && map->levelInfoIndex <= WAR_CAMPAIGN_ORCS_12)
             player->race = (map->levelInfoIndex - WAR_CAMPAIGN_HUMANS_01) % 2 == 0 ? WAR_RACE_HUMANS : WAR_RACE_ORCS;
-#endif
         player->gold = levelInfo->levelInfo.gold[i];
         player->wood = levelInfo->levelInfo.lumber[i];
         player->godMode = false;
@@ -480,22 +455,16 @@ static void initPlayersInfo(WarMap* map, WarResource* levelInfo)
 
 static void createStartingEntities(WarContext* context, WarResource* levelInfo)
 {
-#ifdef WAR_FRANK
     wrng_levelLoading = true;
-#endif
     for (s32 i = 0; i < (s32)levelInfo->levelInfo.startEntitiesCount; i++)
     {
         WarLevelUnit startUnit = levelInfo->levelInfo.startEntities[i];
-#ifdef WAR_FRANK
         // frank: the original makes no unit where it does not fit (0x13990)
         if (!wmv_placeFree(context, startUnit.type, startUnit.x, startUnit.y))
         {
-#ifndef FRANK_BOARD
             if (getenv("WAR_MOVEDEBUG")) fprintf(stderr, "level unit type %d at %d,%d does not fit\n", startUnit.type, startUnit.x, startUnit.y);
-#endif
             continue;
         }
-#endif
         WarEntity* startEntity = we_createUnit(context, CREATE_UNIT_ARGS_INIT(
             .type=startUnit.type,
             .x=startUnit.x,
@@ -507,9 +476,7 @@ static void createStartingEntities(WarContext* context, WarResource* levelInfo)
         ));
         we_setInitialIdleState(context, startEntity);
     }
-#ifdef WAR_FRANK
     wrng_levelLoading = false;
-#endif
 }
 
 void wmap_addEntityToSelection(WarContext* context, WarEntityId id)
@@ -617,15 +584,6 @@ vec2 wmap_mapToScreenCoordinatesV(WarContext* context, vec2 v)
     v = vec2_translatef(v, -map->camera.viewport.x, -map->camera.viewport.y);
     v = vec2_translatef(v, map->ui.mapPanel.x, map->ui.mapPanel.y);
     return v;
-}
-
-rect wmap_mapToScreenCoordinatesR(WarContext* context, rect r)
-{
-    WarMap* map = context->map;
-
-    r = rect_translatef(r, -map->camera.viewport.x, -map->camera.viewport.y);
-    r = rect_translatef(r, map->ui.mapPanel.x, map->ui.mapPanel.y);
-    return r;
 }
 
 vec2 wmap_mapToTileCoordinatesV(vec2 v)
@@ -855,26 +813,6 @@ bool wmap_isUnitPartiallyVisible(WarContext* context, WarMap* map, WarEntity* en
     return wmap_isAnyUnitTileInStates(context, map, entity, MAP_TILE_STATE_VISIBLE);
 }
 
-bool wmap_isUnitVisible(WarContext* context, WarMap* map, WarEntity* entity)
-{
-    return wmap_areAllUnitTilesInState(context, map, entity, MAP_TILE_STATE_VISIBLE);
-}
-
-bool wmap_isUnitPartiallyFog(WarContext* context, WarMap* map, WarEntity* entity)
-{
-    return wmap_isAnyUnitTileInStates(context, map, entity, MAP_TILE_STATE_FOG);
-}
-
-bool wmap_isUnitFog(WarContext* context, WarMap* map, WarEntity* entity)
-{
-    return wmap_areAllUnitTilesInState(context, map, entity, MAP_TILE_STATE_FOG);
-}
-
-bool wmap_isUnitPartiallyUnknown(WarContext* context, WarMap* map, WarEntity* entity)
-{
-    return wmap_isAnyUnitTileInStates(context, map, entity, MAP_TILE_STATE_UNKNOWN);
-}
-
 bool wmap_isUnitUnknown(WarContext* context, WarMap* map, WarEntity* entity)
 {
     return wmap_areAllUnitTilesInState(context, map, entity, MAP_TILE_STATE_UNKNOWN);
@@ -923,17 +861,11 @@ WarColor wmap_getMapTileAverage(WarResource* levelVisual, WarResource* tileset, 
         for(s32 tx = 0; tx < MEGA_TILE_WIDTH; tx++)
         {
             s32 pixel = (tilePixelY + ty) * TILESET_WIDTH + (tilePixelX + tx);
-#ifdef WAR_FRANK
             u8 colorIndex = tileset->tilesetData.data[pixel];
             u16 c = colorIndex ? tileset->tilesetData.lut[colorIndex] : 0;
             r += (c >> 11) << 3;
             g += ((c >> 5) & 63) << 2;
             b += (c & 31) << 3;
-#else
-            r += tileset->tilesetData.data[pixel * 4 + 0];
-            g += tileset->tilesetData.data[pixel * 4 + 1];
-            b += tileset->tilesetData.data[pixel * 4 + 2];
-#endif
         }
     }
 
@@ -1078,7 +1010,6 @@ WarMap* wmap_createCustomMap(WarContext* context, s32 levelInfoIndex, const WarC
 
     levelInfo->levelInfo.startEntitiesCount = 0;
 
-#ifdef WAR_FRANK
     // frank: the level's arrays are trimmed to size; make room for this setup
     {
         u32 most = 0;
@@ -1089,13 +1020,6 @@ WarMap* wmap_createCustomMap(WarContext* context, s32 levelInfoIndex, const WarC
             levelInfo->levelInfo.startEntities, MAX(need, 1) * sizeof(WarLevelUnit));
         assert(levelInfo->levelInfo.startEntities);
     }
-#else
-    if (!levelInfo->levelInfo.startEntities)
-    {
-        levelInfo->levelInfo.startEntities = (WarLevelUnit*)wm_alloc(MAX_ENTITIES_COUNT * sizeof(WarLevelUnit));
-        assert(levelInfo->levelInfo.startEntities);
-    }
-#endif
 
     levelInfo->levelInfo.races[0] = playerRace;
     levelInfo->levelInfo.races[1] = enemyRace;
@@ -1215,18 +1139,14 @@ void wmap_freeMap(WarContext* context, WarMap* map)
     wspr_freeSprite(context, map->minimapSprite);
     wspr_freeSprite(context, map->blackSprite);
 
-#ifdef WAR_FRANK
     wpath_freeFlowFields(&map->finder);
-#endif
 
     WarEntityManager* manager = &map->entityManager;
     WarEntityMapFree(&manager->entitiesByType);
     WarUnitMapFree(&manager->unitsByType);
     WarEntityIdMapFree(&manager->entitiesById);
-#ifdef WAR_FRANK
     free(manager->slotById);
     manager->slotById = NULL;
-#endif
     WarEntityListFree(&manager->uiEntities);
 
     WarEntityIdListFree(&map->selectedEntities);
@@ -1250,7 +1170,6 @@ void wmap_enterMap(WarContext* context)
     WarResource* levelPassable = wres_getOrCreateResource(context, levelInfo->levelInfo.passableIndex);
     assert(levelPassable && levelPassable->type == WAR_RESOURCE_TYPE_LEVEL_PASSABLE);
 
-#ifdef WAR_FRANK
     {
         // frank: the original's random numbers from the level's start, and
         // its random choice of the level's unit groups
@@ -1258,7 +1177,6 @@ void wmap_enterMap(WarContext* context)
         wrng_levelSeed((u32)SDL_rand(0x7FFFFFFF));
         wres_frankPickStartUnits(context, levelInfo, levelInfoIndex);
     }
-#endif
 
     map->playing = true;
     map->custom = levelInfo->levelInfo.customMap;
@@ -1305,14 +1223,10 @@ void wmap_leaveMap(WarContext* context)
 {
     if (context->map)
     {
-#ifdef WAR_FRANK
         // frank: free the map with its entities, not only its indices
         we_removeAllEntities(context);
         wmap_freeMap(context, context->map);
         wm_free(context->map);
-#else
-        wmap_freeMap(context, context->map);
-#endif
         context->map = NULL;
     }
 }
@@ -1477,8 +1391,6 @@ static bool isEntitySelectable(WarContext* context, WarMap* map, WarEntity* enti
 
 static void updateSelectionFromList(WarContext* context, WarEntityList* newSelectedEntities)
 {
-    TracyCZoneN(ctx, "UpdateSelectionFromList", 1);
-
     WarMap* map = context->map;
 
     for (s32 i = newSelectedEntities->count - 1; i >= 0; i--)
@@ -1579,9 +1491,6 @@ static void updateSelectionFromList(WarContext* context, WarEntityList* newSelec
         WarEntity* entity = newSelectedEntities->items[i];
         wmap_addEntityToSelection(context, entity->id);
     }
-
-    TracyCPlotI("SelectedEntities", (s64)map->selectedEntities.count);
-    TracyCZoneEnd(ctx);
 }
 
 static void updateSelection(WarContext* context)
@@ -1669,7 +1578,6 @@ static void updateDebugRenderShortcuts(WarContext* context)
         { WAR_KEY_F, WAR_DEBUG_RENDER_FONT             },
         { WAR_KEY_J, WAR_DEBUG_RENDER_PROJECTILES      },
         { WAR_KEY_W, WAR_DEBUG_RENDER_FLOW_FIELD       },
-        { WAR_KEY_R, WAR_DEBUG_RENDER_RVO              },
         { WAR_KEY_T, WAR_DEBUG_RENDER_STATE_MACHINE    },
     };
 
@@ -1685,14 +1593,11 @@ static void updateDebugRenderShortcuts(WarContext* context)
 
 static void updateSelectionGroups(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateSelectionGroups", 1);
-
     WarMap* map = context->map;
     WarInput* input = &context->input;
 
     if (map->status.cheatStatus.visible)
     {
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1713,7 +1618,6 @@ static void updateSelectionGroups(WarContext* context)
                 WarEntityIdListAdd(selectionGroup, map->selectedEntities.items[j]);
             }
 
-            TracyCPlotI("ControlGroupSize", (s64)selectionGroup->count);
             break;
         }
 
@@ -1730,13 +1634,10 @@ static void updateSelectionGroups(WarContext* context)
                 WarEntityListAdd(&newSelectedEntities, entity);
         }
 
-        TracyCPlotI("ControlGroupRecallSize", (s64)newSelectedEntities.count);
         updateSelectionFromList(context, &newSelectedEntities);
         WarEntityListFree(&newSelectedEntities);
         break;
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 static void updateTreesEdit(WarContext* context)
@@ -2015,8 +1916,6 @@ static void updateFlowFieldDebug(WarContext* context)
 
 static void updateCommandButtons(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateCommandButtons", 1);
-
     WarMap* map = context->map;
 
     // Reset all IMGUI command panel state.
@@ -2034,7 +1933,6 @@ static void updateCommandButtons(WarContext* context)
         map->commandPanel.textsHighlightCount[i]  = 0;
     }
 
-#ifdef WAR_FRANK
     // frank: a selected id may outlive its unit (removed without a death
     // state, or its slot reused): keep only living units with an owner
     for (s32 k = map->selectedEntities.count - 1; k >= 0; k--)
@@ -2045,11 +1943,9 @@ static void updateCommandButtons(WarContext* context)
             wst_isDead(context, se) || wst_isCollapsing(context, se))
             wmap_removeEntityFromSelection(context, id);
     }
-#endif
     s32 selectedEntitiesCount = map->selectedEntities.count;
     if (selectedEntitiesCount == 0)
     {
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -2077,7 +1973,6 @@ static void updateCommandButtons(WarContext* context)
             snprintf(map->commandPanel.texts[2], sizeof(map->commandPanel.texts[2]), " USED %d", dudesCount);
             map->commandPanel.textsVisible[2] = true;
 
-            TracyCZoneEnd(ctx);
             return;
         }
     }
@@ -2093,7 +1988,6 @@ static void updateCommandButtons(WarContext* context)
         snprintf(map->commandPanel.texts[3], sizeof(map->commandPanel.texts[3]), "%d", gold);
         map->commandPanel.textsVisible[3] = true;
 
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -2130,14 +2024,10 @@ static void updateCommandButtons(WarContext* context)
             map->commandPanel.slotsActive[i]  = true;
         }
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void updateCommandFromRightClick(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateCommandFromRightClick", 1);
-
     WarMap* map = context->map;
     WarUnitCommand* command = &map->commandState.command;
     WarInput* input = &context->input;
@@ -2243,14 +2133,10 @@ void updateCommandFromRightClick(WarContext* context)
             wcmd_cancel(context, NULL);
         }
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 static void updateStatus(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateStatus", 1);
-
     WarMap* map = context->map;
     WarInput* input = &context->input;
     WarMapStatus* status = &map->status;
@@ -2283,7 +2169,6 @@ static void updateStatus(WarContext* context)
                 }
 
                 wcheatp_setCheatsPanelVisible(context, false);
-                TracyCZoneEnd(ctx);
                 return;
             }
 
@@ -2344,7 +2229,6 @@ static void updateStatus(WarContext* context)
             // Store cursor X offset (relative to bottomPanel.x + 2) for renderHUD.
             cheatStatus->cursorX = 2.0f + statusTextSize.x;
 
-            TracyCZoneEnd(ctx);
             return;
         }
 
@@ -2365,7 +2249,6 @@ static void updateStatus(WarContext* context)
             status->statusLineHighlightCount = 0;
             status->statusLineGold = 0;
             status->statusLineWood = 0;
-            TracyCZoneEnd(ctx);
             return;
         }
 
@@ -2464,28 +2347,22 @@ static void updateStatus(WarContext* context)
             }
         }
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 static void updateMapCursor(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateMapCursor", 1);
-
     WarMap* map = context->map;
     WarInput* input = &context->input;
 
     if (!map->playing)
     {
         wui_changeCursorType(context, WAR_CURSOR_ARROW);
-        TracyCZoneEnd(ctx);
         return;
     }
 
     if (isMapDragging(input))
     {
         wui_changeCursorType(context, WAR_CURSOR_GREEN_CROSSHAIR);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -2670,14 +2547,10 @@ static void updateMapCursor(WarContext* context)
         else                                //  0,  0
             wui_changeCursorType(context, WAR_CURSOR_ARROW);
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 static void updateActions(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateActions", 1);
-
     WarEntityList* units = we_getEntitiesOfType(context, WAR_ENTITY_TYPE_UNIT);
     for(s32 i = 0; i < units->count; i++)
     {
@@ -2687,14 +2560,10 @@ static void updateActions(WarContext* context)
             wact_updateAction(context, entity);
         }
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 static void updateProjectiles(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateProjectiles", 1);
-
     WarEntityList* projectiles = we_getEntitiesOfType(context, WAR_ENTITY_TYPE_PROJECTILE);
     for (s32 i = 0; i < projectiles->count; i++)
     {
@@ -2704,14 +2573,10 @@ static void updateProjectiles(WarContext* context)
             wproj_updateProjectile(context, entity);
         }
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 static void updateMagic(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateMagic", 1);
-
     WarEntityList* units = we_getEntitiesOfType(context, WAR_ENTITY_TYPE_UNIT);
     for (s32 i = 0; i < units->count; i++)
     {
@@ -2724,7 +2589,6 @@ static void updateMagic(WarContext* context)
             WarUnitComponent* unit = we_getUnitComponent(context, entity);
             assert(unit);
 
-#ifdef WAR_FRANK
             if (wai_drivesTicks(context)) continue;
             // frank: the original's rates (WAR.EXE 0x2D3D0): casters gain a
             // point every 60 ticks (a computer player's) or 40 (the human's),
@@ -2756,51 +2620,12 @@ static void updateMagic(WarContext* context)
             {
                 unit->manaTime -= context->gameDeltaTime;
             }
-            continue;
-#endif
-            if (unit->manaTime <= 0)
-            {
-                if (wu_isSummonUnit(context, entity))
-                {
-                    unit->mana = MAX(unit->mana - 1, 0);
-
-                    // when the mana runs out the summoned units will die
-                    if (unit->mana == 0)
-                    {
-                        vec2 position = wu_getUnitCenterPosition(context, entity);
-
-                        WarStateDeath* deathState = wst_createDeathState(context, entity);
-                        wst_resetState(context, entity, (WarStateBase*)deathState, WAR_TRANSITION_CAUSE_LIFECYCLE);
-
-                        if (unit->type == WAR_UNIT_SCORPION || unit->type == WAR_UNIT_SPIDER)
-                        {
-                            wa_createAudioWithPosition(context, CREATE_AUDIO_ARGS_INIT(.audioId=WAR_DEAD_SPIDER_SCORPION, .position=position, .hasPosition=true, .loop=false));
-                        }
-                    }
-                }
-                else
-                {
-                    // the magic units have a mana regeneration rate of roughly 1 point/sec
-                    // so a magic unit will spend almost 4 minutes to fill its mana when its rans out
-                    unit->mana = MIN(unit->mana + 1, unit->maxMana);
-                }
-
-                unit->manaTime = 1.0f;
-            }
-            else
-            {
-                unit->manaTime -= context->gameDeltaTime;
-            }
         }
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 static bool updatePoisonCloud(WarContext* context, WarEntity* entity)
 {
-    TracyCZoneN(ctx, "UpdatePoisonCloud", 1);
-
     WarPoisonCloudComponent* poisonCloud = we_getPoisonCloudComponent(context, entity);
     assert(poisonCloud);
 
@@ -2829,29 +2654,21 @@ static bool updatePoisonCloud(WarContext* context, WarEntity* entity)
         poisonCloud->damageTime = 1.0f;
     }
 
-    TracyCZoneEnd(ctx);
-
     return poisonCloud->time <= 0;
 }
 
 static bool updateSight(WarContext* context, WarEntity* entity)
 {
-    TracyCZoneN(ctx, "UpdateSight", 1);
-
     WarSightComponent* sight = we_getSightComponent(context, entity);
     assert(sight);
 
     sight->time -= context->gameDeltaTime;
-
-    TracyCZoneEnd(ctx);
 
     return sight->time <= 0;
 }
 
 static void updateSpells(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateSpells", 1);
-
     WarEntityList* poisonCloudSpells = we_getEntitiesOfType(context, WAR_ENTITY_TYPE_POISON_CLOUD);
     WarEntityList* sightSpells = we_getEntitiesOfType(context, WAR_ENTITY_TYPE_SIGHT);
 
@@ -2890,9 +2707,7 @@ static void updateSpells(WarContext* context)
         assert(unit);
 
         if (unit->invisible
-#ifdef WAR_FRANK
             && !wai_drivesTicks(context)
-#endif
         )
         {
             unit->invisibilityTime -= context->gameDeltaTime;
@@ -2904,9 +2719,7 @@ static void updateSpells(WarContext* context)
         }
 
         if (unit->invulnerable
-#ifdef WAR_FRANK
             && !wai_drivesTicks(context)
-#endif
         )
         {
             unit->invulnerabilityTime -= context->gameDeltaTime;
@@ -2922,14 +2735,10 @@ static void updateSpells(WarContext* context)
     {
         we_removeEntityById(context, spellsToRemove[i]);
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void updateFoW(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateFoW", 1);
-
     WarMap* map = context->map;
 
     for (s32 i = 0; i < MAP_TILES_WIDTH * MAP_TILES_HEIGHT; i++)
@@ -3043,19 +2852,14 @@ void updateFoW(WarContext* context)
             }
         }
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void determineFoWTypes(WarContext* context)
 {
-    TracyCZoneN(ctx, "DetermineFoWTypes", 1);
-
     WarMap* map = context->map;
 
     if (!map->fowEnabled)
     {
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -3166,8 +2970,6 @@ void determineFoWTypes(WarContext* context)
             }
         }
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 WarCampaignMapType wmap_getCampaignMapTypeByLevelInfoIndex(s32 levelInfoIndex)
@@ -3185,7 +2987,6 @@ WarLevelResult checkObjectives(WarContext* context)
 
     if (map->objectivesTime <= 0)
     {
-#ifdef WAR_FRANK
         // frank: the original's checks, from the level's AI flags
         WarLevelResult frankResult;
         if (wai_checkObjectives(context, &frankResult))
@@ -3193,7 +2994,6 @@ WarLevelResult checkObjectives(WarContext* context)
             map->objectivesTime = 1;
             return frankResult;
         }
-#endif
         WarCampaignMapData data = wcamp_getCampaignData(
             wmap_getCampaignMapTypeByLevelInfoIndex(map->levelInfoIndex)
         );
@@ -3211,33 +3011,23 @@ WarLevelResult checkObjectives(WarContext* context)
 
 void updateObjectives(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateObjectives", 1);
-
     WarMap* map = context->map;
 
     if (map->result == WAR_LEVEL_RESULT_NONE)
     {
         map->result = checkObjectives(context);
-#if defined(WAR_FRANK) && !defined(FRANK_BOARD)
         if (getenv("WAR_AILOG") && map->result != WAR_LEVEL_RESULT_NONE)
             logInfo("campaign result: %s at tick %u",
                     map->result == WAR_LEVEL_RESULT_WIN ? "win" : "lose", wrng_tick);
-#endif
-        TracyCZoneEnd(ctx);
         return;
     }
 
     map->playing = false;
 
-#ifdef WAR_FRANK
     // frank: the demo ends after mission 2, the full game after 12
     bool isLastLevel = isDemo(context)
         ? (map->levelInfoIndex == WAR_CAMPAIGN_HUMANS_02 || map->levelInfoIndex == WAR_CAMPAIGN_ORCS_02)
         : (map->levelInfoIndex == WAR_CAMPAIGN_HUMANS_12 || map->levelInfoIndex == WAR_CAMPAIGN_ORCS_12);
-#else
-    bool isLastLevel = map->levelInfoIndex == WAR_CAMPAIGN_HUMANS_02 ||
-                        map->levelInfoIndex == WAR_CAMPAIGN_ORCS_02;
-#endif
 
     if (map->result == WAR_LEVEL_RESULT_WIN && isLastLevel)
     {
@@ -3247,14 +3037,10 @@ void updateObjectives(WarContext* context)
     {
         wmm_showOrHideGameOverMenu(context, true);
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void wmap_updateMap(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateMap", 1);
-
     WarMap* map = context->map;
 
     if (!map->playing)
@@ -3266,7 +3052,6 @@ void wmap_updateMap(WarContext* context)
         input->mapDragState.rect = RECT_EMPTY;
 
         wui_updateUIButtons(context, !map->status.cheatStatus.visible);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -3327,7 +3112,6 @@ void wmap_updateMap(WarContext* context)
     updateMagic(context);
     updateSpells(context);
 
-#ifdef WAR_FRANK
     // frank: the fog at 10 Hz (upstream: every frame, all 4096 tiles twice)
     if (context->realTime >= map->frankNextFoWTime)
     {
@@ -3335,10 +3119,6 @@ void wmap_updateMap(WarContext* context)
         updateFoW(context);
         determineFoWTypes(context);
     }
-#else
-    updateFoW(context);
-    determineFoWTypes(context);
-#endif
 
     updateCommandButtons(context);
 
@@ -3352,8 +3132,6 @@ void wmap_updateMap(WarContext* context)
     updateFlowFieldDebug(context);
 
     updateObjectives(context);
-
-    TracyCZoneEnd(ctx);
 }
 
 // Called each tick when context->paused is true.
@@ -3372,7 +3150,6 @@ void wmap_updateMapPaused(WarContext* context)
     wstdbg_updateDebugText(context);
 }
 
-#ifdef WAR_FRANK
 // frank: only the tiles under the viewport (upstream draws all 64x64 of
 // the terrain and twice the fog every frame), one tile of margin
 #define WMAP_VISIBLE_TILES(map) \
@@ -3380,16 +3157,11 @@ void wmap_updateMapPaused(WarContext* context)
     const s32 visY0 = MAX((s32)((map)->camera.viewport.y / MEGA_TILE_HEIGHT) - 1, 0); \
     const s32 visX1 = MIN((s32)(((map)->camera.viewport.x + (map)->camera.viewport.width) / MEGA_TILE_WIDTH) + 2, MAP_TILES_WIDTH); \
     const s32 visY1 = MIN((s32)(((map)->camera.viewport.y + (map)->camera.viewport.height) / MEGA_TILE_HEIGHT) + 2, MAP_TILES_HEIGHT)
-#endif
 
 static void renderTerrain(WarContext* context)
 {
-    TracyCZoneN(ctx, "RenderTerrain", 1);
-
     WarMap *map = context->map;
-#ifdef WAR_FRANK
     WMAP_VISIBLE_TILES(map);
-#endif
 
     WarResource* levelInfo = wres_getOrCreateResource(context, map->levelInfoIndex);
     assert(levelInfo && levelInfo->type == WAR_RESOURCE_TYPE_LEVEL_INFO);
@@ -3397,17 +3169,10 @@ static void renderTerrain(WarContext* context)
     WarResource* levelVisual = wres_getOrCreateResource(context, levelInfo->levelInfo.visualIndex);
     assert(levelVisual && levelVisual->type == WAR_RESOURCE_TYPE_LEVEL_VISUAL);
 
-#ifdef WAR_FRANK
     for(s32 y = visY0; y < visY1; y++)
     {
         for(s32 x = visX0; x < visX1; x++)
         {
-#else
-    for(s32 y = 0; y < MAP_TILES_HEIGHT; y++)
-    {
-        for(s32 x = 0; x < MAP_TILES_WIDTH; x++)
-        {
-#endif
             WarMapTile* tile = wmap_getMapTileState(map, x, y);
             if (!map->fowEnabled ||
                 tile->state == MAP_TILE_STATE_VISIBLE ||
@@ -3431,37 +3196,23 @@ static void renderTerrain(WarContext* context)
             }
         }
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 static void renderFoW(WarContext* context)
 {
-    TracyCZoneN(ctx, "RenderFoW", 1);
-
     WarMap* map = context->map;
-#ifdef WAR_FRANK
     WMAP_VISIBLE_TILES(map);
-#endif
 
     if (!map->fowEnabled)
     {
-        TracyCZoneEnd(ctx);
         return;
     }
 
     // Pass 1: render unknown boundary and unknown tiles at full opacity
-#ifdef WAR_FRANK
     for(s32 y = visY0; y < visY1; y++)
     {
         for(s32 x = visX0; x < visX1; x++)
         {
-#else
-    for(s32 y = 0; y < MAP_TILES_HEIGHT; y++)
-    {
-        for(s32 x = 0; x < MAP_TILES_WIDTH; x++)
-        {
-#endif
             WarMapTile* tile = wmap_getMapTileState(map, x, y);
 
             if (tile->type != WAR_FOG_PIECE_NONE && tile->boundary == WAR_FOG_BOUNDARY_UNKOWN)
@@ -3488,17 +3239,10 @@ static void renderFoW(WarContext* context)
     wr_save(context);
     wr_globalAlpha(context, 0.5f);
 
-#ifdef WAR_FRANK
     for(s32 y = visY0; y < visY1; y++)
     {
         for(s32 x = visX0; x < visX1; x++)
         {
-#else
-    for(s32 y = 0; y < MAP_TILES_HEIGHT; y++)
-    {
-        for(s32 x = 0; x < MAP_TILES_WIDTH; x++)
-        {
-#endif
             WarMapTile* tile = wmap_getMapTileState(map, x, y);
 
             if (tile->type != WAR_FOG_PIECE_NONE &&
@@ -3524,8 +3268,6 @@ static void renderFoW(WarContext* context)
     }
 
     wr_restore(context);
-
-    TracyCZoneEnd(ctx);
 }
 
 static void renderPassableInfo(WarContext* context)
@@ -3839,8 +3581,6 @@ static void renderNearUnitsDebug(WarContext* context)
     if (!context->debugRender.flags[WAR_DEBUG_RENDER_NEAR_UNITS])
         return;
 
-    TracyCZoneN(ctx, "RenderNearUnitsDebug", 1);
-
     WarMap* map = context->map;
     if (!map->debug.nearUnitsEnabled)
         return;
@@ -3895,8 +3635,6 @@ static void renderNearUnitsDebug(WarContext* context)
     }
 
     WarEntityListFree(&nearUnits);
-
-    TracyCZoneEnd(ctx);
 }
 
 static void renderFlowField(WarContext* context)
@@ -3963,107 +3701,8 @@ static void renderFlowField(WarContext* context)
     }
 }
 
-static void renderRvoDebug(WarContext* context)
-{
-    if (!context->debugRender.flags[WAR_DEBUG_RENDER_RVO])
-        return;
-
-    TracyCZoneN(ctx, "RenderRvoDebug", 1);
-
-#define CANDIDATE_DRAW_SCALE 1.0f
-#define ARROW_HEAD_LEN 3.0f
-#define DOT_RADIUS_PX 1.5f
-#define BEST_DOT_RADIUS_PX 3.0f
-
-    // WarColor radiusColor   = WAR_COLOR_RGBA(255, 255, 255, 64);
-    WarColor rvoVelColor   = WAR_COLOR_RGB(0, 255, 0);
-    WarColor prefVelColor  = WAR_COLOR_RGB(255, 255, 0);
-    // WarColor cleanColor    = WAR_COLOR_RGB(255, 255, 255);
-    // WarColor penaltyColor  = WAR_COLOR_RGB(255, 0, 0);
-    // WarColor bestColor     = WAR_COLOR_RGB(0, 255, 0);
-
-    WarEntityList* units = we_getEntitiesOfType(context, WAR_ENTITY_TYPE_UNIT);
-    for (s32 i = 0; i < units->count; i++)
-    {
-        WarEntity* entity = units->items[i];
-        if (!entity || entity->id < 0) continue;
-
-        WarStateMove* moveState = wst_getMoveState(context, entity);
-        if (!moveState) continue;
-        if (moveState->rvoNumCandidates <= 0) continue;
-
-        vec2 pos    = moveState->rvoPosition;
-        // f32  radius = moveState->rvoRadius;
-
-        // rect radiusRect = rectf(
-        //     pos.x - radius, pos.y - radius,
-        //     radius * 2.0f,  radius * 2.0f
-        // );
-        // wr_strokeRect(context, radiusRect, radiusColor);
-
-        if (vec2_lengthSqr(moveState->rvoVelocity) > 0.01f)
-        {
-            vec2 rvoEnd = vec2f(
-                pos.x + moveState->rvoVelocity.x * CANDIDATE_DRAW_SCALE,
-                pos.y + moveState->rvoVelocity.y * CANDIDATE_DRAW_SCALE
-            );
-            wr_strokeLine(context, pos, rvoEnd, rvoVelColor);
-            f32 angle = atan2f(moveState->rvoVelocity.y, moveState->rvoVelocity.x);
-            vec2 h1 = vec2f(rvoEnd.x - ARROW_HEAD_LEN * cosf(angle - PI / 6.0f),
-                            rvoEnd.y - ARROW_HEAD_LEN * sinf(angle - PI / 6.0f));
-            vec2 h2 = vec2f(rvoEnd.x - ARROW_HEAD_LEN * cosf(angle + PI / 6.0f),
-                            rvoEnd.y - ARROW_HEAD_LEN * sinf(angle + PI / 6.0f));
-            wr_strokeLine(context, rvoEnd, h1, rvoVelColor);
-            wr_strokeLine(context, rvoEnd, h2, rvoVelColor);
-        }
-
-        if (vec2_lengthSqr(moveState->rvoPreferredVelocity) > 0.01f)
-        {
-            vec2 prefEnd = vec2f(
-                pos.x + moveState->rvoPreferredVelocity.x * CANDIDATE_DRAW_SCALE,
-                pos.y + moveState->rvoPreferredVelocity.y * CANDIDATE_DRAW_SCALE
-            );
-            wr_strokeLine(context, pos, prefEnd, prefVelColor);
-            f32 angle = atan2f(moveState->rvoPreferredVelocity.y, moveState->rvoPreferredVelocity.x);
-            vec2 h1 = vec2f(prefEnd.x - ARROW_HEAD_LEN * cosf(angle - PI / 6.0f),
-                            prefEnd.y - ARROW_HEAD_LEN * sinf(angle - PI / 6.0f));
-            vec2 h2 = vec2f(prefEnd.x - ARROW_HEAD_LEN * cosf(angle + PI / 6.0f),
-                            prefEnd.y - ARROW_HEAD_LEN * sinf(angle + PI / 6.0f));
-            wr_strokeLine(context, prefEnd, h1, prefVelColor);
-            wr_strokeLine(context, prefEnd, h2, prefVelColor);
-        }
-
-        // s32 n = moveState->rvoNumCandidates;
-        // for (s32 c = 0; c < n; c++)
-        // {
-        //     vec2 cv = moveState->rvoCandidates[c];
-        //     vec2 dot = vec2f(pos.x + cv.x * CANDIDATE_DRAW_SCALE,
-        //                      pos.y + cv.y * CANDIDATE_DRAW_SCALE);
-        //     rect r = rectf(dot.x - DOT_RADIUS_PX, dot.y - DOT_RADIUS_PX,
-        //                    DOT_RADIUS_PX * 2.0f, DOT_RADIUS_PX * 2.0f);
-        //     WarColor col = moveState->rvoCandidateHadCollision[c] ? penaltyColor : cleanColor;
-        //     wr_fillRect(context, r, col);
-        // }
-
-        // if (moveState->rvoBestIndex >= 0 &&
-        //     moveState->rvoBestIndex < n)
-        // {
-        //     vec2 cv = moveState->rvoCandidates[moveState->rvoBestIndex];
-        //     vec2 dot = vec2f(pos.x + cv.x * CANDIDATE_DRAW_SCALE,
-        //                      pos.y + cv.y * CANDIDATE_DRAW_SCALE);
-        //     rect r = rectf(dot.x - BEST_DOT_RADIUS_PX, dot.y - BEST_DOT_RADIUS_PX,
-        //                    BEST_DOT_RADIUS_PX * 2.0f, BEST_DOT_RADIUS_PX * 2.0f);
-        //     wr_fillRect(context, r, bestColor);
-        // }
-    }
-
-    TracyCZoneEnd(ctx);
-}
-
 static void renderMapPanel(WarContext *context)
 {
-    TracyCZoneN(ctx, "RenderMapPanel", 1);
-
     WarMap *map = context->map;
 
     wr_save(context);
@@ -4090,23 +3729,16 @@ static void renderMapPanel(WarContext *context)
     we_renderEntitiesOfType(context, WAR_ENTITY_TYPE_POISON_CLOUD);
     we_renderEntitiesOfType(context, WAR_ENTITY_TYPE_ANIMATION);
 
-    renderRvoDebug(context);
 
     renderFoW(context);
 
     wr_restore(context);
-
-    TracyCZoneEnd(ctx);
 }
 
 void wmap_renderMap(WarContext *context)
 {
-    TracyCZoneN(ctx, "RenderMap", 1);
-
     updateMapCursor(context);
 
     renderMapPanel(context);
     wmui_renderMapUI(context);
-
-    TracyCZoneEnd(ctx);
 }

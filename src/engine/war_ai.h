@@ -32,8 +32,6 @@ struct _WarAICommand
     };
 };
 
-bool wai_equalsAICommand(const WarAICommand* command1, const WarAICommand* command2);
-void wai_freeAICommand(WarAICommand* command);
 
 shlDeclareQueue(WarAICommandQueue, WarAICommand*)
 shlDeclareList(WarAICommandList, WarAICommand*)
@@ -46,18 +44,10 @@ struct _WarAI
     void* customData;
 };
 
-WarAI* wai_createAI(WarContext* context);
-WarAICommand* wai_createAICommand(WarContext* context, WarPlayerInfo* aiPlayer, WarAICommandType type);
 
-WarAICommand* wai_createUnitRequest(WarContext* context, WarPlayerInfo* aiPlayer, WarUnitType unitType, s32 count);
-WarAICommand* wai_createWaitForUnit(WarContext* context, WarPlayerInfo* aiPlayer, WarUnitType unitType, s32 count);
-WarAICommand* wai_createSleepForTime(WarContext* context, WarPlayerInfo* aiPlayer, f32 time);
 
 void wai_applyUnitRequestProgress(WarAICommand* command);
-bool wai_executeRequestAICommand(WarContext* context, WarPlayerInfo* aiPlayer, WarAICommand* command);
 
 void wai_initAIPlayers(WarContext* context);
 void wai_updateAIPlayers(WarContext* context);
-#ifdef WAR_FRANK
 bool wai_checkObjectives(WarContext* context, WarLevelResult* result);
-#endif

@@ -2,23 +2,6 @@
 
 #include <assert.h>
 
-bool we_hasTreeAtPosition(WarContext* context, WarEntity* forest, s32 x, s32 y)
-{
-    WarForestComponent* fc = we_getForestComponent(context, forest);
-    assert(fc);
-
-    WarTreeList* trees = &fc->trees;
-    for (s32 i = 0; i < trees->count; i++)
-    {
-        WarTree* tree = &trees->items[i];
-        if (tree->tilex == x && tree->tiley == y)
-            return true;
-    }
-
-    return false;
-}
-
-#ifdef WAR_FRANK
 WarEntity* we_getForestAtTile(WarContext* context, s32 x, s32 y)
 {
     WarEntityList* forests = we_getEntitiesOfType(context, WAR_ENTITY_TYPE_FOREST);
@@ -29,7 +12,6 @@ WarEntity* we_getForestAtTile(WarContext* context, s32 x, s32 y)
     }
     return NULL;
 }
-#endif
 
 WarTree* we_getTreeAtTile(WarContext* context, WarEntity* forest, s32 x, s32 y)
 {
@@ -101,10 +83,6 @@ void we_determineTreeTiles(WarContext* context, WarEntity* forest)
             S32ListAdd(&invalidTrees, i);
     }
 
-#ifndef WAR_FRANK
-    for (s32 i = invalidTrees.count - 1; i >= 0; i--)
-        WarTreeListRemoveAt(trees, invalidTrees.items[i]);
-#endif
     // frank: a tree whose neighbours leave it no tile shape stays a tree, as
     // in the original (its tile comes from the level, not from the shape);
     // dropped from the list it went on standing in the walk grid and the
@@ -140,14 +118,12 @@ WarTree* we_findAccesibleTree(WarContext* context, WarEntity* forest, vec2 tile)
     Vec2List positions;
     Vec2ListInit(&positions, wm_frameAllocator());
     Vec2ListAdd(&positions, tile);
-#ifdef WAR_FRANK
     // frank: a visited map instead of a linear search of the list (the fill
     // can cover the whole map: O(n^2) took seconds a call on the board)
     u32 seen[MAP_TILES_WIDTH * MAP_TILES_HEIGHT / 32] = {0};
 #define WAR_TREE_SEEN(x, y) (seen[((y) * MAP_TILES_WIDTH + (x)) >> 5] & (1u << (((y) * MAP_TILES_WIDTH + (x)) & 31)))
 #define WAR_TREE_MARK(x, y) (seen[((y) * MAP_TILES_WIDTH + (x)) >> 5] |= (1u << (((y) * MAP_TILES_WIDTH + (x)) & 31)))
     if (wpath_isInside((s32)tile.x, (s32)tile.y)) WAR_TREE_MARK((s32)tile.x, (s32)tile.y);
-#endif
 
     for (s32 i = 0; i < positions.count; i++)
     {
@@ -175,16 +151,11 @@ WarTree* we_findAccesibleTree(WarContext* context, WarEntity* forest, vec2 tile)
             if (wpath_isInside(xx, yy))
             {
                 vec2 newPosition = vec2i(xx, yy);
-#ifdef WAR_FRANK
                 if (!WAR_TREE_SEEN(xx, yy))
                 {
                     WAR_TREE_MARK(xx, yy);
                     Vec2ListAdd(&positions, newPosition);
                 }
-#else
-                if (!Vec2ListContains(&positions, newPosition, equalsVec2))
-                    Vec2ListAdd(&positions, newPosition);
-#endif
             }
         }
     }
@@ -272,9 +243,7 @@ void we_takeTreeDown(WarContext* context, WarEntity* forest, WarTree* tree)
     WarTree choppedTree = *tree;
 
     wpath_setFreeTiles(&map->finder, choppedTree.tilex, choppedTree.tiley, 1, 1);
-#ifdef WAR_FRANK
     wmv_treeDown(choppedTree.tilex, choppedTree.tiley);
-#endif
     wmap_setMapTileIndex(context, choppedTree.tilex, choppedTree.tiley, choppedTileIndex);
 
     WarForestComponent* forestComp = we_getForestComponent(context, forest);

@@ -13,9 +13,7 @@
 #include "war_state_machine.h"
 #include "war_units.h"
 #include "war_resources.h"
-#ifdef WAR_FRANK
 #include "port/order_adapter.h"
-#endif
 
 #define isEntityOfType(entity, entityType) ((entity)->type == (entityType))
 
@@ -33,9 +31,7 @@ struct _WarWallPiece
     s32 maxhp;
     s32 tilex, tiley;
     u8 player;
-#ifdef WAR_FRANK
     bool frankLaid;   // in the terrain words (port/move.inc)
-#endif
 };
 
 struct _WarRuinPiece
@@ -166,7 +162,6 @@ struct _WarUnitComponent
     // game-time of last attack sound played
     f64 lastAttackSoundGameTime;
 
-#ifdef WAR_FRANK
     // frank: the original's walking (port/move.inc)
     u8 wmvPath[20];       // the route: directions, 0xFE after its end
     u8 wmvPathIndex;      // its next step (20: none)
@@ -188,7 +183,6 @@ struct _WarUnitComponent
     bool frankAtkCheck;    // frank: its attack script reached its checkpoint this tick (the look round)
     bool frankScriptChanged; // an order selected a new script during this unit's turn (0x2ECFC)
     bool frankOrderQueued;   // a pending command awaits the current script's checkpoint
-#endif
 };
 
 #define WAR_UNIT_COMPONENT_INIT_CONST(...) {                  \
@@ -462,11 +456,7 @@ DEFINE_COMPONENT_STORAGE(WarSightStorage, WarSightComponent);
 
 // Per-type dense state arrays (Option A restructure). One homogeneous array
 // per WarStateType; references between states use WarStateRef (type, idx).
-#ifdef WAR_FRANK
 #define MAX_STATES_PER_TYPE 256 // frank: one state of a type per unit at most, in practice
-#else
-#define MAX_STATES_PER_TYPE 512
-#endif
 
 struct _WarStateStorage
 {
@@ -510,18 +500,14 @@ struct _WarEntityManager
     WarEntityMap   entitiesByType; // WarEntityType  -> WarEntityList*
     WarUnitMap     unitsByType;    // WarUnitType    -> WarEntityList*
     WarEntityIdMap entitiesById;   // WarEntityId    -> WarEntity*
-#ifdef WAR_FRANK
     WarOriginalUnit originalUnits[WOR_UNIT_COUNT];
     WarOriginalVision originalVision;
     WarEntity* originalEntities[WOR_UNIT_COUNT];
-#ifndef FRANK_BOARD
     u32 originalScriptTicks[WOR_ORDER_COUNT];
-#endif
     // frank: id -> slot in `entities`, exact (the map above loses keys when
     // others are removed); 0: no such entity, 0xFFFF: two live entities
     // share the id (after the u16 wraps), scan
     u16* slotById;
-#endif
     WarEntityList  uiEntities;     // subset of entities with COMP_UI present
 
     // --- Per-component dense storage ---
@@ -581,12 +567,7 @@ WarForestComponent*       we_addForestComponent(WarContext* context, WarEntity* 
 WarStateMachineComponent* we_addStateMachineComponent(WarContext* context, WarEntity* entity);
 WarAnimationsComponent*   we_addAnimationsComponent(WarContext* context, WarEntity* entity);
 WarUIComponent*           we_addUIComponent(WarContext* context, WarEntity* entity, String name);
-WarTextComponent*         we_addTextComponent(WarContext* context, WarEntity* entity, WarTextComponent params);
-WarRectComponent*         we_addRectComponent(WarContext* context, WarEntity* entity, WarRectComponent params);
-WarButtonComponent*       we_addButtonComponent(WarContext* context, WarEntity* entity, WarButtonComponent params);
-WarButtonComponent*       we_addButtonComponentFromResource(WarContext* context, WarEntity* entity, WarSpriteResourceRef normalRef, WarSpriteResourceRef pressedRef);
 WarAudioComponent*        we_addAudioComponent(WarContext* context, WarEntity* entity, WarAudioComponent params);
-WarCursorComponent*       we_addCursorComponent(WarContext* context, WarEntity* entity, WarCursorComponent params);
 WarProjectileComponent*   we_addProjectileComponent(WarContext* context, WarEntity* entity, WarProjectileComponent params);
 WarPoisonCloudComponent*  we_addPoisonCloudComponent(WarContext* context, WarEntity* entity, WarPoisonCloudComponent params);
 WarSightComponent*        we_addSightComponent(WarContext* context, WarEntity* entity, WarSightComponent params);
@@ -638,11 +619,8 @@ void we_removeRuinPiece(WarContext* context, WarEntity* entity, WarRuinPiece* pi
 void we_determineRuinTypes(WarContext* context, WarEntity* entity);
 
 // Trees
-bool we_hasTreeAtPosition(WarContext* context, WarEntity* forest, s32 x, s32 y);
 WarTree* we_getTreeAtTile(WarContext* context, WarEntity* forest, s32 x, s32 y);
-#ifdef WAR_FRANK
 WarEntity* we_getForestAtTile(WarContext* context, s32 x, s32 y);
-#endif
 void we_determineTreeTiles(WarContext* context, WarEntity* forest);
 void we_determineAllTreeTiles(WarContext* context);
 WarTree* we_findAccesibleTree(WarContext* context, WarEntity* forest, vec2 tile);
@@ -689,8 +667,6 @@ WarEntity* we_createBuilding(WarContext* context, const CreateUnitArgs* args);
 void we_setInitialIdleState(WarContext* context, WarEntity* entity);
 
 WarEntity* we_findEntity(WarContext* context, WarEntityId id);
-WarEntity* we_findClosestUnitOfType(WarContext* context, WarEntity* entity, WarUnitType type);
-WarEntity* we_findUIEntity(WarContext* context, StringView name);
 WarEntity* we_findEntityUnderCursor(WarContext* context, bool includeTrees, bool includeWalls);
 void we_removeEntity(WarContext* context, WarEntity* entity);
 void we_removeEntityById(WarContext* context, WarEntityId id);
@@ -698,9 +674,7 @@ void we_renderEntity(WarContext* context, WarEntity* entity);
 void we_renderEntitiesOfType(WarContext* context, WarEntityType type);
 void we_renderUnitSelection(WarContext* context);
 
-#ifdef WAR_FRANK
 void we_removeAllEntities(WarContext* context);
-#endif
 void we_initEntityManager(WarContext* context, WarEntityManager* manager);
 WarEntityManager* we_getEntityManager(WarContext* context);
 WarEntityList* we_getEntitiesOfType(WarContext* context, WarEntityType type);
@@ -714,7 +688,6 @@ void we_increasePlayerResources(WarContext* context, WarPlayerInfo* player, s32 
 bool we_increaseUnitHp(WarContext* context, WarEntity* entity, s32 hp);
 bool we_decreaseUnitHp(WarContext* context, WarEntity* entity, s32 hp);
 bool we_decreaseUnitMana(WarContext* context, WarEntity* entity, s32 mana);
-void we_increaseUnitMana(WarContext* context, WarEntity* entity, s32 mana);
 bool we_enoughFarmFood(WarContext* context, WarPlayerInfo* player);
 bool we_checkFarmFood(WarContext* context, WarPlayerInfo* player);
 bool we_checkRectToBuild(WarContext* context, s32 x, s32 y, s32 w, s32 h);
@@ -723,7 +696,6 @@ bool we_checkTileToBuildRoadOrWall(WarContext* context, s32 x, s32 y);
 void we_getNearUnits(WarContext* context, vec2 tilePosition, s32 distance, WarEntityList* nearUnits);
 WarEntity* we_getNearEnemy(WarContext* context, WarEntity* entity);
 bool we_isBeingAttackedBy(WarContext* context, WarEntity* entity, WarEntity* other);
-bool we_isBeingAttacked(WarContext* context, WarEntity* entity);
 WarEntity* we_getAttacker(WarContext* context, WarEntity* entity);
 WarEntity* we_getAttackTarget(WarContext* context, WarEntity* entity);
 s32 we_getTotalDamage(s32 minDamage, s32 rndDamage, s32 armor);

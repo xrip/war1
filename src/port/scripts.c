@@ -156,14 +156,6 @@ void wscr_applyOriginalScripts(WarContext* context)
     logInfo("original unit scripts: %d attacks, %d walks", attacks, walks);
 }
 
-// The original's walking speed for a unit type and upgrade level, px/s (0:
-// none, use war1's).
-f32 wscr_unitSpeed(WarUnitType type, s32 level)
-{
-    if ((u32)type >= WSCR_TYPES || level < 0 || level > 2) return 0;
-    return wscr_speeds[type][level];
-}
-
 // The original's walk script of a unit type (port/move.inc runs
 // it): false when DATA.WAR's scripts weren't read.
 bool wscr_walkScript(WarUnitType type, const u8** data, u32* length, u32* start)
@@ -174,18 +166,6 @@ bool wscr_walkScript(WarUnitType type, const u8** data, u32* length, u32* start)
     *data = wscr_data;
     *length = wscr_length;
     *start = w;
-    return true;
-}
-
-// The original's attack (work) script of a unit type.
-bool wscr_attackScript(WarUnitType type, const u8** data, u32* length, u32* start)
-{
-    if (!wscr_data || (u32)type >= WSCR_TYPES) return false;
-    u32 a = wscr_animation(wu_toOriginalType(type), 4);
-    if (a >= wscr_length) return false;
-    *data = wscr_data;
-    *length = wscr_length;
-    *start = a;
     return true;
 }
 
@@ -713,7 +693,6 @@ static void wos_syncTile(WarContext* context, WarEntity* entity, WarOriginalUnit
     original->tileX = (s16)tile.x;
     original->tileY = (s16)tile.y;
     original->owner = unit->player;
-#ifndef FRANK_BOARD
     if (getenv("WAR_TILECHECK") && ((u32)tile.x >= MAP_TILES_WIDTH || (u32)tile.y >= MAP_TILES_HEIGHT))
     {
         WarStateBase* st = wst_getActiveState(context, entity);
@@ -721,7 +700,6 @@ static void wos_syncTile(WarContext* context, WarEntity* entity, WarOriginalUnit
         fprintf(stderr, "off-map tick %u entity %u type %d tile %d,%d pos %.1f,%.1f state %d\n", wrng_tick, entity->id,
                 unit->type, (s32)tile.x, (s32)tile.y, pos.x, pos.y, st ? (s32)st->type : -1);
     }
-#endif
 }
 
 static u16 wos_reference(WarContext* context, WarEntityId id, u16 retained)
@@ -886,7 +864,6 @@ WarOrderResult wos_tick(WarContext* context, WarEntity* entity,
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
     if (wai_drivesTicks(context))
     {
-#ifndef FRANK_BOARD
         {
             // WAR_SCRIPTWATCH=id: where each script of that unit runs from
             static s32 watch = -2;
@@ -900,11 +877,9 @@ WarOrderResult wos_tick(WarContext* context, WarEntity* entity,
                 backtrace_symbols_fd(frames, backtrace(frames, 8), 2);
             }
         }
-#endif
         if (unit->frankScriptTick == wrng_tick)
         {
             logError("original kernel: two scripts in tick %u for entity %u", wrng_tick, entity->id);
-#ifndef FRANK_BOARD
             if (getenv("WAR_KERNELTRACE"))
             {
                 extern int backtrace(void**, int);
@@ -912,7 +887,6 @@ WarOrderResult wos_tick(WarContext* context, WarEntity* entity,
                 void* frames[24];
                 backtrace_symbols_fd(frames, backtrace(frames, 24), 2);
             }
-#endif
             return WOR_ERROR;
         }
         unit->frankScriptTick = wrng_tick;
@@ -934,9 +908,7 @@ WarOrderResult wos_tick(WarContext* context, WarEntity* entity,
     {
         wos_publish(&runtime, slot);
         if (result == WOR_CHANGED) wos_explore(context, entity);
-#ifndef FRANK_BOARD
         we_getEntityManager(context)->originalScriptTicks[original->current]++;
-#endif
     }
     return result;
 }

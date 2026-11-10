@@ -7,68 +7,30 @@
 #include "war_units.h"
 #include "war_map.h"
 
-#include "TracyC.h"
-
 WarStateCast* wst_createCastState(WarContext* context, WarEntity* entity, WarSpellType spellType, WarEntityId targetEntityId, vec2 targetPosition)
 {
-    TracyCZoneN(ctx, "wst_createCastState", true);
-
     WarStateRef ref = wst_allocState(context, WAR_STATE_CAST, entity->id);
     if (!WAR_STATE_REF_IS_VALID(ref))
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     WarStateCast* state = (WarStateCast*)wst_deref(context, ref);
     if (!state)
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     state->spellType = spellType;
     state->targetEntityId = targetEntityId;
     state->targetPosition = targetPosition;
-#ifdef WAR_FRANK
     state->frankPrepared = false;
     state->frankRunning = false;
     state->frankNextOrder = 2;
-#endif
 
-    TracyCZoneEnd(ctx);
     return state;
 }
 
-bool wst_canInterruptCast(WarContext* context, WarEntity* entity, WarStateBase* state, WarInterruptKind interrupt)
-{
-    NOT_USED(context);
-    NOT_USED(entity);
-
-    WarStateCast* s = (WarStateCast*)state;
-
-    switch (s->spellType)
-    {
-        case WAR_SPELL_RAIN_OF_FIRE:
-            return interrupt & (WAR_INTERRUPT_PLAYER_ORDER | WAR_INTERRUPT_AI_ORDER | WAR_INTERRUPT_STATUS | WAR_INTERRUPT_SCRIPT | WAR_INTERRUPT_LIFECYCLE);
-        case WAR_SPELL_HEALING:
-        case WAR_SPELL_FAR_SIGHT:
-        case WAR_SPELL_INVISIBILITY:
-        case WAR_SPELL_POISON_CLOUD:
-        case WAR_SPELL_RAISE_DEAD:
-        case WAR_SPELL_DARK_VISION:
-        case WAR_SPELL_UNHOLY_ARMOR:
-        case WAR_SUMMON_SPIDER:
-        case WAR_SUMMON_SCORPION:
-        case WAR_SUMMON_DAEMON:
-        case WAR_SUMMON_WATER_ELEMENTAL:
-            return true;
-    }
-
-    return false;
-}
-
-#ifdef WAR_FRANK
 // Spells keep command entry, script action and checkpoint completion
 // separate (0x21258, 0x14140, 0x27BCC).
 u8 wst_frankSpellOrder(WarSpellType type)
@@ -283,21 +245,15 @@ void wst_frankCastTick(WarContext* context, WarEntity* entity, WarStateBase* sta
     }
     wact_setAction(context, entity, WAR_ACTION_TYPE_ATTACK, false, 1.0f);
 }
-#endif
 
 void wst_updateCastState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_updateCastState", true);
-
     WarStateCast* s = (WarStateCast*)state;
-#ifdef WAR_FRANK
     if (wai_drivesTicks(context) && wst_frankSpellOrder(s->spellType))
     {
         wst_frankPrepareCast(context, entity, s);
-        TracyCZoneEnd(ctx);
         return;
     }
-#endif
 
     WarMap* map = context->map;
 
@@ -320,7 +276,6 @@ void wst_updateCastState(WarContext* context, WarEntity* entity, WarState* state
         {
             WarStateFollow* followState = wst_createFollowState(context, entity, targetEntityId, targetPosition, stats->range * MEGA_TILE_WIDTH);
             wst_pushState(context, entity, (WarStateBase*)followState, WAR_TRANSITION_CAUSE_COMPLETION);
-            TracyCZoneEnd(ctx);
             return;
         }
     }
@@ -568,15 +523,11 @@ void wst_updateCastState(WarContext* context, WarEntity* entity, WarState* state
         action->lastActionStep = WAR_ACTION_STEP_NONE;
         action->lastSoundStep =  WAR_ACTION_STEP_NONE;
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 
 void wst_updateCastStates(WarContext* context)
 {
-    TracyCZoneN(ctx, "wst_updateCastStates", true);
-
     WarEntityManager* manager = we_getEntityManager(context);
     WarStateStorage*  storage = &manager->stateStorage;
     WarStateCast*      states  = storage->cast;
@@ -595,6 +546,4 @@ void wst_updateCastStates(WarContext* context)
 
         wst_updateCastState(context, entity, (WarStateBase*)state);
     }
-
-    TracyCZoneEnd(ctx);
 }

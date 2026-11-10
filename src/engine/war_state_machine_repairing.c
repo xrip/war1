@@ -4,37 +4,28 @@
 #include "war_units.h"
 #include "war_pathfinder.h"
 
-#include "TracyC.h"
-
 WarStateRepairing* wst_createRepairingState(WarContext* context, WarEntity* entity, WarEntityId buildingId)
 {
-    TracyCZoneN(ctx, "wst_createRepairingState", true);
-
     WarStateRef ref = wst_allocState(context, WAR_STATE_REPAIRING, entity->id);
     if (!WAR_STATE_REF_IS_VALID(ref))
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     WarStateRepairing* state = (WarStateRepairing*)wst_deref(context, ref);
     if (!state)
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     state->buildingId = buildingId;
     state->insideBuilding = false;
 
-    TracyCZoneEnd(ctx);
     return state;
 }
 
 void wst_enterRepairingState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_enterRepairingState", true);
-
     WarMap* map = context->map;
     assert(map);
 
@@ -48,7 +39,6 @@ void wst_enterRepairingState(WarContext* context, WarEntity* entity, WarState* s
         WarStateIdle* idleState = wst_createIdleState(context, entity, true);
         wst_replaceState(context, entity, (WarStateBase*)idleState, WAR_TRANSITION_CAUSE_COMPLETION);
 
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -64,7 +54,6 @@ void wst_enterRepairingState(WarContext* context, WarEntity* entity, WarState* s
             WarStateIdle* idleState = wst_createIdleState(context, entity, true);
             wst_replaceState(context, entity, (WarStateBase*)idleState, WAR_TRANSITION_CAUSE_COMPLETION);
 
-            TracyCZoneEnd(ctx);
             return;
         }
 
@@ -86,14 +75,10 @@ void wst_enterRepairingState(WarContext* context, WarEntity* entity, WarState* s
         wu_setUnitDirectionFromDiff(context, entity, targetTile.x - tile.x, targetTile.y - tile.y);
         wact_setAction(context, entity, WAR_ACTION_TYPE_REPAIR, true, 1.0f);
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void wst_exitRepairingState(WarContext* context, WarEntity* entity, WarState* state, WarStateExitReason reason)
 {
-    TracyCZoneN(ctx, "wst_exitRepairingState", true);
-
     NOT_USED(reason);
 
     WarMap* map = context->map;
@@ -114,14 +99,10 @@ void wst_exitRepairingState(WarContext* context, WarEntity* entity, WarState* st
     vec2 unitSize = wu_getUnitSize(context, entity);
     vec2 tile = wu_getUnitCenterTile(context, entity);
     wpath_setFreeTiles(&map->finder, (s32)tile.x, (s32)tile.y, (s32)unitSize.x, (s32)unitSize.y);
-
-    TracyCZoneEnd(ctx);
 }
 
 void wst_updateRepairingState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_updateRepairingState", true);
-
     WarMap* map = context->map;
     assert(map);
 
@@ -147,7 +128,6 @@ void wst_updateRepairingState(WarContext* context, WarEntity* entity, WarState* 
         WarStateIdle* idleState = wst_createIdleState(context, entity, true);
         wst_replaceState(context, entity, (WarStateBase*)idleState, WAR_TRANSITION_CAUSE_COMPLETION);
 
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -163,7 +143,6 @@ void wst_updateRepairingState(WarContext* context, WarEntity* entity, WarState* 
             {
                 WarStateIdle* idleState = wst_createIdleState(context, entity, true);
                 wst_replaceState(context, entity, (WarStateBase*)idleState, WAR_TRANSITION_CAUSE_COMPLETION);
-                TracyCZoneEnd(ctx);
                 return;
             }
 
@@ -202,14 +181,10 @@ void wst_updateRepairingState(WarContext* context, WarEntity* entity, WarState* 
         WarStateIdle* idleState = wst_createIdleState(context, entity, true);
         wst_replaceState(context, entity, (WarStateBase*)idleState, WAR_TRANSITION_CAUSE_COMPLETION);
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void wst_updateRepairingStates(WarContext* context)
 {
-    TracyCZoneN(ctx, "wst_updateRepairingStates", true);
-
     WarEntityManager* manager = we_getEntityManager(context);
     WarStateStorage*  storage = &manager->stateStorage;
     WarStateRepairing*      states  = storage->repairing;
@@ -228,6 +203,4 @@ void wst_updateRepairingStates(WarContext* context)
 
         wst_updateRepairingState(context, entity, (WarStateBase*)state);
     }
-
-    TracyCZoneEnd(ctx);
 }

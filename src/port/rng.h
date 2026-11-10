@@ -15,13 +15,9 @@ static u32 wrng_tick;   // the AI's tick (research traces)
 
 static inline s32 wrng_draw(const char* who)
 {
-#ifndef FRANK_BOARD
     static s32 trace = -1;
     if (trace < 0) trace = getenv("WAR_RNGTRACE") != NULL;
     if (trace) fprintf(stderr, "draw tick %u %s\n", wrng_tick, who);
-#else
-    (void)who;
-#endif
     wrng_seed = wrng_seed * 0x15A4E35u + 1u;
     return (s32)((wrng_seed >> 16) & 0x7FFF);
 }
@@ -31,9 +27,7 @@ static inline s32 wrng_draw(const char* who)
 // WAR_RNGSEED (hex) to play the same game as a reference run.
 static inline void wrng_levelSeed(u32 fallback)
 {
-#ifndef FRANK_BOARD
     const char* s = getenv("WAR_RNGSEED");
     if (s) { wrng_seed = (u32)strtoul(s, NULL, 16); return; }
-#endif
     wrng_seed = fallback;
 }

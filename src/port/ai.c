@@ -325,11 +325,6 @@ static WarEntity* wai_findTargetEx(WarContext* context, s32 x, s32 y, s32 radius
     return best ? best->e : NULL;
 }
 
-static WarEntity* wai_findTarget(WarContext* context, s32 x, s32 y, s32 radius)
-{
-    return wai_findTargetEx(context, x, y, radius, 1);
-}
-
 static bool wai_order(WarContext* context, WarEntity* entity, WarStateBase* state)
 {
     if (!state) return false;
@@ -387,22 +382,14 @@ bool wai_playerAttackPlace(WarContext* context, WarEntity* entity, s32 x, s32 y)
     return wai_attackMove(context, entity, x, y);
 }
 
-#ifndef FRANK_BOARD
 #define wai_attack(c, e, t) wai_attackAt(c, e, t, __func__)
-#else
-#define wai_attack(c, e, t) wai_attackAt(c, e, t, NULL)
-#endif
 static bool wai_attackAt(WarContext* context, WarEntity* entity, WarEntity* target, const char* who)
 {
-#ifndef FRANK_BOARD
     {
         static s32 watch = -2;
         if (watch == -2) watch = getenv("WAR_ATKDEBUG") ? atoi(getenv("WAR_ATKDEBUG")) : -1;
         if ((s32)entity->id == watch) fprintf(stderr, "attack order tick %u by %s at %d\n", wrng_tick, who, target ? (s32)target->id : -1);
     }
-#else
-    NOT_USED(who);
-#endif
     if (!wst_canSubmitTransition(context, entity, WAR_INTERRUPT_AI_ORDER)) return false;
     if (!wu_canAttack(context, entity, target)) return false;
     WarStateAttack* at = wst_createAttackState(context, entity, target->id, wu_getUnitCenterPosition(context, target));
@@ -871,9 +858,7 @@ static bool wai_chopWood(WarContext* context, WarEntity* worker, WarUnitComponen
                 WarEntity* forest = NULL;
                 if (wai_isTree(context, x, y, &forest))
                 {
-#ifndef FRANK_BOARD
                     if (getenv("WAR_WORKERDEBUG")) fprintf(stderr, "  wood at %d,%d (rect %d,%d-%d,%d)\n", x, y, r[0], r[1], r[2], r[3]);
-#endif
                     return wai_order(context, worker, (WarStateBase*)wst_createGatherWoodState(
                         context, worker, forest->id, wai_tileCenter(x, y)));
                 }
@@ -922,9 +907,7 @@ static void wai_workerThink(WarContext* context, WarEntity* worker, WarUnitCompo
         return;
     }
     s32 target = 2 * (wai->workers[player] - 1) / 3;
-#ifndef FRANK_BOARD
     if (getenv("WAR_WORKERDEBUG")) fprintf(stderr, "worker %d think t %.3f workers %d builders %d gold %d target %d\n", (s32)worker->id, context->gameTime, wai->workers[player], wai->builders[player], wai->goldWorkers[player], target);
-#endif
     if (player == 0 && wai->builders[player] < target && wai_humanBuild(context, worker, player))
     {
         wai->builders[player]++;
@@ -1393,23 +1376,6 @@ static bool wai_spellKnown(WarContext* context, s32 group)
     return pi->upgrades[group].level > 0;
 }
 
-static WarEntity* wai_woundedFriend(WarContext* context, WarUnitComponent* caster, s32 cx, s32 cy, s32 radius)
-{
-    WarEntityManager* slots = we_getEntityManager(context);   // (slot order, as the original)
-    for (s32 i = 1; i < MAX_ENTITIES_COUNT; i++)
-    {
-        WarEntity* e = &slots->entities[i];
-        if (!e->id || !wu_isUnit(e)) continue;
-        if (!wai_alive(context, e)) continue;
-        WarUnitComponent* u = we_getUnitComponent(context, e);
-        if (!u || u->player != caster->player || wai_isBuildingType(u->type) || u->hp >= u->maxhp) continue;
-        s32 ux, uy;
-        wai_tile(context, e, &ux, &uy);
-        if (wai_tileDistance(cx, cy, ux, uy) <= radius) return e;
-    }
-    return NULL;
-}
-
 // The original's last resort (0x2A030): with the town hall gone, a unit on
 // the hall's spot steps off it, so the hall can be rebuilt there.
 static void wai_leaveHallSite(WarContext* context, WarEntity* e, WarUnitComponent* u)
@@ -1827,14 +1793,12 @@ void wai_initAIPlayers(WarContext* context)
 #endif
     wai->routeCount = wai->lv->routeWordsCount;
     memcpy(wai->routes, wai->lv->routeWords, (size_t)wai->routeCount * sizeof(u16));
-#ifndef FRANK_BOARD
     if (getenv("WAR_ROUTEDEBUG"))
     {
         fprintf(stderr, "routes %d:", wai->routeCount);
         for (s32 k = 0; k < wai->routeCount; k++) fprintf(stderr, " %d", (s16)wai->routes[k]);
         fprintf(stderr, "\n");
     }
-#endif
     for (s32 p = 0; p < MAX_PLAYERS_COUNT; p++)
     {
         wai->homeX[p] = levelInfo->levelInfo.startX;
@@ -2107,9 +2071,7 @@ static void wai_idleTurn(WarContext* context, WarEntity* e, WarUnitComponent* u)
     if (u->player == 4 && (u->type == WAR_UNIT_WOUNDED || u->type == WAR_UNIT_LOTHAR)) return;
     WarAIUnit* info = wai_unitInfo(context, e);
     if (info && info->id == e->id && info->role == WAI_ROLE_ROUTE && info->route >= 0) return;
-#ifndef FRANK_BOARD
     if (getenv("WAR_TURNDEBUG")) fprintf(stderr, "turn tick %u unit %d type %d player %d\n", wai_tickNo, (s32)e->id, u->type, u->player);
-#endif
     const s32 r = wrng_next() & 0xFF;
     if (r == 0) u->direction = (WarDirection)((u->direction + 7) & 7);
     else if (r <= 3) u->direction = (WarDirection)((u->direction + 1) & 7);
@@ -2259,7 +2221,6 @@ static void wai_step(WarContext* context, bool levelStart)
     NOT_USED(map);
 }
 
-#ifndef FRANK_BOARD
 // Research (host): the AI's state in the reference build's format
 // (war1-reference runtime, WAR_AILOG), every 33 ticks, for comparing.
 static void wai_traceLog(WarContext* context, u32 ticks)
@@ -2338,7 +2299,6 @@ static void wai_traceLog(WarContext* context, u32 ticks)
     }
     fflush(f);
 }
-#endif
 
 // A computer's worker out of the hall (0x1D1A0): its think, now. True when
 // it took an order.
@@ -2371,7 +2331,6 @@ void wai_updateAIPlayers(WarContext* context)
     while (context->gameTime >= wai->nextStep && guard++ < 8)
     {
         wrng_tick = wai->ticks + 1;
-#ifndef FRANK_BOARD
         {
             static FILE* rf; static s32 on = -1;
             if (on < 0) { on = getenv("WAR_RNGLOG") != NULL; if (on) rf = fopen(getenv("WAR_RNGLOG"), "w"); }
@@ -2383,7 +2342,6 @@ void wai_updateAIPlayers(WarContext* context)
             // writes it (at its AI clock, before the unit table)
             if (wrng_tick % 33 == 0 || getenv("WAR_AIEVERY")) wai_traceLog(context, wrng_tick);
         }
-#endif
         wai_step(context, !wai->started);
         wai->started = true;
         // The original checks the objectives every 321 polls of its main
@@ -2394,13 +2352,10 @@ void wai_updateAIPlayers(WarContext* context)
             result != WAR_LEVEL_RESULT_NONE)
         {
             context->map->result = result;
-#ifndef FRANK_BOARD
             if (getenv("WAR_AILOG"))
                 logInfo("campaign result: %s at tick %u", result == WAR_LEVEL_RESULT_WIN ? "win" : "lose", wrng_tick);
-#endif
             break;
         }
-#ifndef FRANK_BOARD
         {
             static u32 ticks;
             static WarAIState* run;
@@ -2433,7 +2388,6 @@ void wai_updateAIPlayers(WarContext* context)
                 }
             }
         }
-#endif
         wai->nextStep += WAI_STEP * WAI_TICK_SECONDS;
     }
 }
@@ -2560,7 +2514,6 @@ bool wai_checkObjectives(WarContext* context, WarLevelResult* result)
 //   kill N  destroys every unit and building of players 1-3 but N buildings
 //   reveal  the fog-of-war cheat (screenshots)
 //   exit    hands Lothar/Garona to the human and puts them on the exit
-#ifndef FRANK_BOARD
 // ---------------------------------------------------------------- agent
 // Host agent mode (host/plat_host.c, WAR_AGENT): a player outside the game
 // reads what the human side sees and gives the human's orders through
@@ -2931,15 +2884,12 @@ static void wai_agCommand(WarContext* context, const char* cmd)
     }
     else printf("agent: unknown command '%s'\n", cmd);
 }
-#endif
 
 void wai_debug(void* ctx, const char* cmd)
 {
     WarContext* context = (WarContext*)ctx;
     if (!wai || !wai->lv || !context->map) return;
-#ifndef FRANK_BOARD
     if (!strncmp(cmd, "ag ", 3)) { wai_agCommand(context, cmd + 3); return; }
-#endif
     WarEntityList* list = we_getEntitiesOfType(context, WAR_ENTITY_TYPE_UNIT);
     if (!strncmp(cmd, "kill", 4))
     {
@@ -2990,20 +2940,6 @@ void wai_debug(void* ctx, const char* cmd)
             wu_setUnitTile(context, e, vec2i(ex, ey));
         }
     }
-}
-
-// The camera and the mouse as the game sees them (board console `cam`).
-size_t wai_camera_report(void* ctx, char* buf, size_t n)
-{
-    WarContext* context = (WarContext*)ctx;
-    if (!context || !context->map) return (size_t)snprintf(buf, n, "cam: no map");
-    WarMap* map = context->map;
-    WarInput* input = &context->input;
-    return (size_t)snprintf(buf, n, "cam: viewport %d,%d | cursor %d,%d left held %d just %d | command %d",
-                            (s32)map->camera.viewport.x, (s32)map->camera.viewport.y,
-                            (s32)input->pos.x, (s32)input->pos.y,
-                            isButtonHeld(input, WAR_MOUSE_LEFT), isButtonJustPressed(input, WAR_MOUSE_LEFT),
-                            (s32)map->commandState.command.type);
 }
 
 // A one-line status for diagnostics (host `mem`, board console).

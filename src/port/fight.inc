@@ -61,9 +61,7 @@ static s32 wft_roll(WarContext* context, WarUnitComponent* u, WarEntity* target)
             ? MIN(normal + piercing, 255) : 0;
     }
     if (!wu_isUnit(target)) return 0;
-#ifndef FRANK_BOARD
     if (getenv("WAR_TURNDEBUG")) fprintf(stderr, "roll by type %d player %d at %d\n", u->type, u->player, (s32)target->id);
-#endif
     if (wrng_next() >= 0x6666) return 0;
     WarUnitComponent* tu = we_getUnitComponent(context, target);
     const s32 armor = wu_isBuildingUnitType(tu->type) ? wu_getBuildingStats(tu->type)->armor
@@ -207,9 +205,7 @@ static void wft_launch(WarContext* context, WarEntity* e, WarUnitComponent* u, W
 {
     WarOriginalUnit* original = wos_unit(context, e);
     if (target ? !wu_isUnit(target) : !original || original->current != 7) return;
-#ifndef FRANK_BOARD
     if (getenv("WAR_FIGHTDEBUG")) fprintf(stderr, "launch t %.3f by %d (type %d) at %d\n", context->gameTime, (s32)e->id, u->type, target ? (s32)target->id : 0);
-#endif
     s32 slot = -1;
     for (s32 i = 0; i < WFT_MISSILES; i++) if (!wft_missiles[i].used) { slot = i; break; }
     if (slot < 0) return;
@@ -273,9 +269,7 @@ static void wft_fly(WarFrankMissile* m)
     {
         m->run = (s16)left;
     }
-#ifndef FRANK_BOARD
     if (getenv("WAR_TURNDEBUG")) fprintf(stderr, "fly missile type %d run %d state %d\n", m->type, m->run, m->state);
-#endif
     wrng_next();
     if (m->state == 2 || (m->type == 1 && m->state == 6))
     {
@@ -451,23 +445,19 @@ void wft_unitTick(WarContext* context, WarEntity* e, WarStateBase* st)
     if (u->frankScriptChanged) return; // no second script in the same unit turn (0x2ECFC)
     if (!u->frankAtkOn)
     {
-#ifndef FRANK_BOARD
         if (getenv("WAR_FIGHTDEBUG")) fprintf(stderr, "attack script starts t %.3f tick %u by %d (type %d)\n", context->gameTime, wrng_tick, (s32)e->id, u->type);
-#endif
         if (!wos_select(context, e, ((WarStateAttack*)st)->frankOrder, 1)) return;
         u->frankAtkOn = true;
     }
     // (a walk that handed over to its attack this turn ran this tick's
     // script: the attack's starts at the next, 0x2ECFC)
     if (u->frankScriptTick == wrng_tick) return;
-#ifndef FRANK_BOARD
     {
         static s32 watch = -2;
         if (watch == -2) watch = getenv("WAR_ATKDEBUG") ? atoi(getenv("WAR_ATKDEBUG")) : -1;
         WarOriginalUnit* original = wos_unit(context, e);
         if ((s32)e->id == watch && original) fprintf(stderr, "atk tick %u pc %u wait %u target %d\n", wrng_tick, original->pc, original->wait, (s32)((WarStateAttack*)st)->targetEntityId);
     }
-#endif
     if (wos_tick(context, e, wft_action) != WOR_CHANGED) return;
     if (wmv_takePendingOrder(context, e)) return;
     if (((WarStateAttack*)st)->frankOrder == 7)

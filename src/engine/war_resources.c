@@ -9,7 +9,6 @@
 #endif
 #include "shl/memory_buffer.h"
 #include "shl/wstr.h"
-#include "TracyC.h"
 
 #include "war_log.h"
 #include "war_audio.h"
@@ -20,19 +19,6 @@
 #define reads32(arr, index) (*(s32*)((arr) + (index)))
 #define readu32(arr, index) (*(u32*)((arr) + (index)))
 
-static void buildRgbaLut(const u8* paletteData, u32* rgba)
-{
-    rgba[0] = 0u;
-    for (s32 c = 1; c < 256; ++c)
-    {
-        u8 r = paletteData[c * 3 + 0];
-        u8 g = paletteData[c * 3 + 1];
-        u8 b = paletteData[c * 3 + 2];
-        rgba[c] = (u32)r | ((u32)g << 8) | ((u32)b << 16) | 0xFF000000u;
-    }
-}
-
-#ifdef WAR_FRANK
 // frank: 8-bit pixels stay 8-bit; each (palette1, palette2) pair becomes one
 // RGB565 table that all textures drawn with it share.
 typedef struct
@@ -67,9 +53,7 @@ static const u16* wres_getPaletteLut(WarContext* context, s32 palette1Index, s32
 
     return entry->lut;
 }
-#endif
 
-#ifdef WAR_FRANK
 // frank: big or per-level resources (sounds, music, level maps) are loaded
 // when first asked for, and can be dropped again (wres_unloadLazyResources).
 static s16 entryOfIndex[MAX_RESOURCES_COUNT]; // assets[] position + 1
@@ -104,9 +88,7 @@ static void wres_loadLazyResource(WarContext* context, s32 index)
     wres_loadResource(context, &entry);
     resourceLoading[index] = false;
 }
-#endif
 
-#ifdef WAR_FRANK
 // Drop the sounds and music loaded so far (between a scene or map and the
 // next: nothing plays then). They load again from DATA.WAR when next used.
 void wres_unloadLazyResources(WarContext* context)
@@ -123,7 +105,6 @@ void wres_unloadLazyResources(WarContext* context)
         }
     }
 }
-#endif
 
 WarResource* wres_getOrCreateResource(WarContext* context, s32 index)
 {
@@ -131,12 +112,10 @@ WarResource* wres_getOrCreateResource(WarContext* context, s32 index)
 
     WarResource* resource = &context->resources[index];
 
-#ifdef WAR_FRANK
     if (resource->type == WAR_RESOURCE_TYPE_UNKNOWN)
     {
         wres_loadLazyResource(context, index);
     }
-#endif
 
     if (resource->type == WAR_RESOURCE_TYPE_UNKNOWN)
     {
@@ -211,18 +190,14 @@ void wres_getPalette(WarContext* context, s32 palette1Index, s32 palette2Index, 
 
 void wres_loadPaletteResource(WarContext *context, DatabaseEntry *entry)
 {
-    TracyCZoneN(ctx, "wres_loadPaletteResource", true);
-
     s32 index = entry->index;
     WarRawResource rawResource = context->warFile->resources[index];
     if (rawResource.placeholder)
     {
         logInfo("Placeholder resource found at: %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
-#ifdef WAR_FRANK
     // short palettes: pad a copy (the raw buffer is freed by the loader)
     u8 paddedPalette[PALETTE_LENGTH];
     if (rawResource.length < PALETTE_LENGTH)
@@ -231,13 +206,6 @@ void wres_loadPaletteResource(WarContext *context, DatabaseEntry *entry)
         memcpy(paddedPalette, rawResource.data, rawResource.length);
         rawResource.data = paddedPalette;
     }
-#else
-    if (rawResource.length < PALETTE_LENGTH)
-    {
-        rawResource.data = (u8*)wm_realloc(rawResource.data, PALETTE_LENGTH);
-        memset(rawResource.data + rawResource.length, 0, PALETTE_LENGTH - rawResource.length);
-    }
-#endif
 
     WarResource *resource = wres_getOrCreateResource(context, index);
     resource->type = WAR_RESOURCE_TYPE_PALETTE;
@@ -312,76 +280,39 @@ void wres_loadPaletteResource(WarContext *context, DatabaseEntry *entry)
         resource->paletteData.colors[215 * 3 + 1] = 20;
         resource->paletteData.colors[215 * 3 + 2] = 24;
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void wres_loadImageResource(WarContext *context, DatabaseEntry *entry)
 {
-    TracyCZoneN(ctx, "wres_loadImageResource", true);
-
-#ifndef WAR_FRANK
-    u8 paletteData[PALETTE_LENGTH];
-    wres_getPalette(context, entry->param1, entry->param2, paletteData);
-
-    u32 rgba[PALETTE_LENGTH/3];
-    buildRgbaLut(paletteData, rgba);
-#endif
-
     s32 index = entry->index;
     WarRawResource rawResource = context->warFile->resources[index];
     if (rawResource.placeholder)
     {
         logInfo("Placeholder resource found at: %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
     u16 width = readu16(rawResource.data, 0);
     u16 height = readu16(rawResource.data, 2);
 
-#ifdef WAR_FRANK
     u8 *pixels = (u8*)wm_alloc(width * height);
     memcpy(pixels, rawResource.data + 4, width * height);
-#else
-    u8 *pixels = (u8*)wm_alloc(width * height * 4 * sizeof(u8));
-    for (s32 i = 0; i < width * height; ++i)
-    {
-        u32 colorIndex = readu8(rawResource.data, 4 + i);
-        memcpy(&pixels[i*4], &rgba[colorIndex], sizeof(u32));
-    }
-#endif
 
     WarResource *resource = wres_getOrCreateResource(context, index);
     resource->type = WAR_RESOURCE_TYPE_IMAGE;
-#ifdef WAR_FRANK
     resource->imageData.lut = wres_getPaletteLut(context, entry->param1, entry->param2);
-#endif
     resource->imageData.width = width;
     resource->imageData.height = height;
     resource->imageData.pixels = pixels;
-
-    TracyCZoneEnd(ctx);
 }
 
 void wres_loadSpriteResource(WarContext *context, DatabaseEntry *entry)
 {
-    TracyCZoneN(ctx, "wres_loadSpriteResource", true);
-
-#ifndef WAR_FRANK
-    u8 paletteData[PALETTE_LENGTH];
-    wres_getPalette(context, entry->param1, entry->param2, paletteData);
-
-    u32 rgba[PALETTE_LENGTH/3];
-    buildRgbaLut(paletteData, rgba);
-#endif
-
     s32 index = entry->index;
     WarRawResource rawResource = context->warFile->resources[index];
     if (rawResource.placeholder)
     {
         logInfo("Placeholder resource found at: %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -392,7 +323,6 @@ void wres_loadSpriteResource(WarContext *context, DatabaseEntry *entry)
     WarSpriteFrame* frames = (WarSpriteFrame*)wm_alloc(framesCount * sizeof(WarSpriteFrame));
     assert(frames);
 
-#ifdef WAR_FRANK
     // cropped 8-bit frames, each after a 4-byte header: dx, dy, w, h
     u32 poolSize = 0;
     for (s32 i = 0; i < framesCount; ++i)
@@ -437,57 +367,7 @@ void wres_loadSpriteResource(WarContext *context, DatabaseEntry *entry)
     resource->spriteData.frameWidth = frameWidth;
     resource->spriteData.frameHeight = frameHeight;
     resource->spriteData.lut = wres_getPaletteLut(context, entry->param1, entry->param2);
-
-    TracyCZoneEnd(ctx);
 }
-
-#else
-    u32 framePixelSize = (u32)frameWidth * (u32)frameHeight * 4u;
-    u8* pixelPool = (u8*)wm_alloc(framesCount * framePixelSize);
-    assert(pixelPool);
-
-    for (s32 i = 0; i < framesCount; ++i)
-    {
-        WarSpriteFrame* frame = &frames[i];
-        frame->dx = readu8(rawResource.data, 4 + i * 8 + 0);
-        frame->dy = readu8(rawResource.data, 4 + i * 8 + 1);
-        frame->w = readu8(rawResource.data, 4 + i * 8 + 2);
-        frame->h = readu8(rawResource.data, 4 + i * 8 + 3);
-        frame->off = readu32(rawResource.data, 4 + i * 8 + 4);
-        frame->data = pixelPool + (u32)i * framePixelSize;
-
-        // found in war1tool.c, don't know if is needed
-        // if (off < 0) {  // High bit of width
-        //     off &= 0x7FFFFFFF;
-        //     w += 256;
-        // }
-    }
-
-    for (s32 i = 0; i < framesCount; ++i)
-    {
-        WarSpriteFrame* frame = &frames[i];
-        u32 off = frame->off;
-        for (s32 y = frame->dy; y < (frame->dy + frame->h); ++y)
-        {
-            for (s32 x = frame->dx; x < (frame->dx + frame->w); ++x)
-            {
-                u32 pixel = (x + y * frameWidth) * 4;
-                u32 colorIndex = rawResource.data[off++];
-                memcpy(&frame->data[pixel], &rgba[colorIndex], sizeof(u32));
-            }
-        }
-    }
-
-    WarResource *resource = wres_getOrCreateResource(context, index);
-    resource->type = WAR_RESOURCE_TYPE_SPRITE;
-    resource->spriteData.frames = frames;
-    resource->spriteData.framesCount = framesCount;
-    resource->spriteData.frameWidth = frameWidth;
-    resource->spriteData.frameHeight = frameHeight;
-
-    TracyCZoneEnd(ctx);
-}
-#endif // WAR_FRANK (sprite)
 
 s32 wres_loadStartEntities(WarResource* resource, WarRawResource* rawResource, s32 offset)
 {
@@ -507,9 +387,7 @@ s32 wres_loadStartEntities(WarResource* resource, WarRawResource* rawResource, s
         startEntity->x = readu8(rawResource->data, offset + 0) / 2;
         startEntity->y = readu8(rawResource->data, offset + 1) / 2;
         startEntity->type = readu8(rawResource->data, offset + 2);
-#ifdef WAR_FRANK
         startEntity->type = wu_fromOriginalType(startEntity->type);   // a campaign level: the original's numbers
-#endif
         startEntity->player = readu8(rawResource->data, offset + 3);
 
         offset += 4;
@@ -524,10 +402,8 @@ s32 wres_loadStartEntities(WarResource* resource, WarRawResource* rawResource, s
         resource->levelInfo.startEntitiesCount++;
     }
 
-#ifdef WAR_FRANK
     // frank: keep only what the level uses (the arrays are sized for the worst case)
     resource->levelInfo.startEntities = (WarLevelUnit*)wm_shrink(resource->levelInfo.startEntities, MAX(resource->levelInfo.startEntitiesCount, 1) * sizeof(WarLevelUnit));
-#endif
 
     return offset;
 }
@@ -559,10 +435,8 @@ s32 wres_loadStartRoads(WarResource* resource, WarRawResource* rawResource, s32 
         resource->levelInfo.startRoadsCount++;
     }
 
-#ifdef WAR_FRANK
     // frank: keep only what the level uses (the arrays are sized for the worst case)
     resource->levelInfo.startRoads = (WarLevelConstruct*)wm_shrink(resource->levelInfo.startRoads, MAX(resource->levelInfo.startRoadsCount, 1) * sizeof(WarLevelConstruct));
-#endif
 
     return offset;
 }
@@ -594,15 +468,12 @@ s32 wres_loadStartWalls(WarResource* resource, WarRawResource* rawResource, s32 
         resource->levelInfo.startWallsCount++;
     }
 
-#ifdef WAR_FRANK
     // frank: keep only what the level uses (the arrays are sized for the worst case)
     resource->levelInfo.startWalls = (WarLevelConstruct*)wm_shrink(resource->levelInfo.startWalls, MAX(resource->levelInfo.startWallsCount, 1) * sizeof(WarLevelConstruct));
-#endif
 
     return offset;
 }
 
-#ifdef WAR_FRANK
 // frank: the original's level loader (WAR.EXE 0x1E8A0). After the level's
 // header the units come in groups; each group is a list of alternatives
 // (offsets, ending in 0xFFFF; an empty list ends the groups) and the game
@@ -638,9 +509,7 @@ void wres_frankPickStartUnits(WarContext* context, WarResource* resource, s32 in
         if (!count) break;
         const s32 pick = wrng_next() % count;
         s32 o = readu16(data, offset + 2 * pick);
-#ifndef FRANK_BOARD
         if (getenv("WAR_MOVEDEBUG")) fprintf(stderr, "level group of %d: took %d (seed %08x)\n", count, pick, wrng_seed);
-#endif
         offset += 2 * (count + 1);
         // its units (0x1E734): 4 bytes each, then an amount (gold, in 256s)
         // when a 0xFE follows; a 0xFF ends them
@@ -664,9 +533,7 @@ void wres_frankPickStartUnits(WarContext* context, WarResource* resource, s32 in
                 e->resourceKind = WAR_RESOURCE_GOLD;
                 e->amount = amount;
             }
-#ifndef FRANK_BOARD
             if (getenv("WAR_LEVELDEBUG")) fprintf(stderr, "level unit %d: type %d (orig %d) owner %d at %d,%d amount %u\n", nu - 1, e->type, readu8(data, o - 2 - (amount ? 2 : 0)), e->player, e->x, e->y, amount);
-#endif
         }
         o += 2;
         // its roads, then its walls (0x1E4A4, 0x1E470): 5 bytes each, a
@@ -699,7 +566,6 @@ void wres_frankPickStartUnits(WarContext* context, WarResource* resource, s32 in
     resource->levelInfo.startWalls = (WarLevelConstruct*)wm_shrink(walls, MAX(nw, 1) * sizeof(WarLevelConstruct));
     resource->levelInfo.startWallsCount = nw;
 }
-#endif
 
 s32 wres_loadCustomStartGoldmines(WarResource* resource, WarRawResource* rawResource, s32 offset)
 {
@@ -726,10 +592,8 @@ s32 wres_loadCustomStartGoldmines(WarResource* resource, WarRawResource* rawReso
         resource->levelInfo.startGoldminesCount++;
     }
 
-#ifdef WAR_FRANK
     // frank: keep only what the level uses (the arrays are sized for the worst case)
     resource->levelInfo.startGoldmines = (WarLevelUnit*)wm_shrink(resource->levelInfo.startGoldmines, MAX(resource->levelInfo.startGoldminesCount, 1) * sizeof(WarLevelUnit));
-#endif
 
     return offset;
 }
@@ -760,18 +624,14 @@ s32 wres_loadCustomStartEntities(WarResource* resource, WarRawResource* rawResou
         configuration->startEntitiesCount++;
     }
 
-#ifdef WAR_FRANK
     // frank: keep only what the level uses (the arrays are sized for the worst case)
     configuration->startEntities = (WarLevelUnit*)wm_shrink(configuration->startEntities, MAX(configuration->startEntitiesCount, 1) * sizeof(WarLevelUnit));
-#endif
 
     return offset;
 }
 
 void wres_loadLevelInfo(WarContext *context, DatabaseEntry *entry)
 {
-    TracyCZoneN(ctx, "wres_loadLevelInfo", true);
-
     s32 index = entry->index;
     WarMapTilesetType tilesetType = (WarMapTilesetType)entry->param1;
     bool isCustomMap = entry->param2;
@@ -780,7 +640,6 @@ void wres_loadLevelInfo(WarContext *context, DatabaseEntry *entry)
     if (rawResource.placeholder)
     {
         logInfo("Placeholder resource found at: %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -849,7 +708,6 @@ void wres_loadLevelInfo(WarContext *context, DatabaseEntry *entry)
         resource->levelInfo.gold[i] = readu32(rawResource.data, 0x70 + i * 4);
     }
 
-#ifdef WAR_FRANK
     // frank: the computer player's parameters (docs/ai.md)
     if (rawResource.length > 0xE4)
     {
@@ -893,7 +751,6 @@ void wres_loadLevelInfo(WarContext *context, DatabaseEntry *entry)
                 (WAR_AI_ROUTE_WORDS_MAX - ai->routeWordsCount) * sizeof(u16));
         }
     }
-#endif
 
     // 0xCC, 0xCE => Starting position of unit (divide by 2) (ushort)
     resource->levelInfo.startX = readu16(rawResource.data, 0xCC) / 2;
@@ -1043,20 +900,15 @@ void wres_loadLevelInfo(WarContext *context, DatabaseEntry *entry)
         // skip marker 0xFFFF
         offset += 2;
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void wres_loadLevelVisual(WarContext *context, DatabaseEntry *entry)
 {
-    TracyCZoneN(ctx, "wres_loadLevelVisual", true);
-
     s32 index = entry->index;
     WarRawResource rawResource = context->warFile->resources[index];
     if (rawResource.placeholder)
     {
         logInfo("Placeholder resource found at: %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1070,20 +922,15 @@ void wres_loadLevelVisual(WarContext *context, DatabaseEntry *entry)
     {
         resource->levelVisual.data[i] = readu16(rawResource.data, i * 2);
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void wres_loadLevelPassable(WarContext *context, DatabaseEntry *entry)
 {
-    TracyCZoneN(ctx, "wres_loadLevelPassable", true);
-
     s32 index = entry->index;
     WarRawResource rawResource = context->warFile->resources[index];
     if (rawResource.placeholder)
     {
         logInfo("Placeholder resource found at: %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1098,20 +945,15 @@ void wres_loadLevelPassable(WarContext *context, DatabaseEntry *entry)
         // 128 -> wood, 64 -> water, 16 -> bridge, 0 -> empty
         resource->levelPassable.data[i] = readu16(rawResource.data, i * 2);
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 void wres_loadTileset(WarContext *context, DatabaseEntry *entry)
 {
-    TracyCZoneN(ctx, "wres_loadTileset", true);
-
     s32 index = entry->index;
     WarRawResource rawResource = context->warFile->resources[index];
     if (rawResource.placeholder)
     {
         logInfo("Placeholder resource found at: %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1157,52 +999,15 @@ void wres_loadTileset(WarContext *context, DatabaseEntry *entry)
         }
     }
 
-#ifdef WAR_FRANK
     WarResource *resource = wres_getOrCreateResource(context, index);
     resource->type = WAR_RESOURCE_TYPE_TILESET;
     resource->tilesetData.tilesCount = rawResource.length / 8;
     resource->tilesetData.data = data; // 8-bit, kept
     resource->tilesetData.lut = wres_getPaletteLut(context, tiles->tilesData.palette1, tiles->tilesData.palette2);
-    TracyCZoneEnd(ctx);
 }
-
-#else
-    u8 paletteData[PALETTE_LENGTH];
-    wres_getPalette(context, tiles->tilesData.palette1, tiles->tilesData.palette2, paletteData);
-
-    u32 rgba[PALETTE_LENGTH/3];
-    buildRgbaLut(paletteData, rgba);
-
-    WarResource *resource = wres_getOrCreateResource(context, index);
-    resource->type = WAR_RESOURCE_TYPE_TILESET;
-    resource->tilesetData.tilesCount = rawResource.length / 8;
-    resource->tilesetData.data = (u8*)wm_alloc(TILESET_WIDTH * TILESET_HEIGHT * 4 * sizeof(u8));
-    assert(resource->tilesetData.data);
-
-    for(s32 i = 0; i < TILESET_WIDTH * TILESET_HEIGHT; i++)
-    {
-        u8 colorIndex = data[i];
-        memcpy(&resource->tilesetData.data[i * 4], &rgba[colorIndex], sizeof(u32));
-    }
-
-    // #if __DEBUG__
-    // {
-    //     char path[32];
-    //     StringView fp = wsv_fromCStringFormat(path, sizeof(path), "tileset_%d.png", index);
-    //     stbi_write_png(wsv_data(fp), TILESET_WIDTH, TILESET_HEIGHT, 4, resource->tilesetData.data, TILESET_WIDTH * 4);
-    // }
-    // #endif
-
-    wm_free(data);
-
-    TracyCZoneEnd(ctx);
-}
-#endif // WAR_FRANK (tileset)
 
 void wres_loadTiles(WarContext *context, DatabaseEntry *entry)
 {
-    TracyCZoneN(ctx, "wres_loadTiles", true);
-
     u8 paletteData[PALETTE_LENGTH];
     wres_getPalette(context, entry->param1, entry->param2, paletteData);
 
@@ -1211,7 +1016,6 @@ void wres_loadTiles(WarContext *context, DatabaseEntry *entry)
     if (rawResource.placeholder)
     {
         logInfo("Placeholder resource found at: %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1221,20 +1025,15 @@ void wres_loadTiles(WarContext *context, DatabaseEntry *entry)
     resource->tilesData.palette2 = entry->param2;
     resource->tilesData.data = (u8*)wm_alloc(rawResource.length * sizeof(u8));
     memcpy(resource->tilesData.data, rawResource.data, rawResource.length);
-
-    TracyCZoneEnd(ctx);
 }
 
 void wres_loadText(WarContext *context, DatabaseEntry *entry)
 {
-    TracyCZoneN(ctx, "wres_loadText", true);
-
     s32 index = entry->index;
     WarRawResource rawResource = context->warFile->resources[index];
     if (rawResource.placeholder)
     {
         logInfo("Placeholder resource found at: %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1243,20 +1042,15 @@ void wres_loadText(WarContext *context, DatabaseEntry *entry)
     resource->textData.length = rawResource.length;
     resource->textData.text = (char *)wm_alloc(resource->textData.length * sizeof(char));
     memcpy(resource->textData.text, rawResource.data, resource->textData.length);
-
-    TracyCZoneEnd(ctx);
 }
 
 void wres_loadXmi(WarContext *context, DatabaseEntry *entry)
 {
-    TracyCZoneN(ctx, "wres_loadXmi", true);
-
     s32 index = entry->index;
     WarRawResource rawResource = context->warFile->resources[index];
     if (rawResource.placeholder)
     {
         logInfo("Placeholder resource found at: %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1268,7 +1062,6 @@ void wres_loadXmi(WarContext *context, DatabaseEntry *entry)
     if (!midData)
     {
         logError("Can't convert XMI file of resource %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1277,20 +1070,15 @@ void wres_loadXmi(WarContext *context, DatabaseEntry *entry)
     resource->audio.data = midData;
     assert(midLength <= INT32_MAX);
     resource->audio.length = (s32)midLength;
-
-    TracyCZoneEnd(ctx);
 }
 
 void wres_loadWave(WarContext *context, DatabaseEntry *entry)
 {
-    TracyCZoneN(ctx, "wres_loadWave", true);
-
     s32 index = entry->index;
     WarRawResource rawResource = context->warFile->resources[index];
     if (rawResource.placeholder)
     {
         logInfo("Placeholder resource found at: %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1298,7 +1086,6 @@ void wres_loadWave(WarContext *context, DatabaseEntry *entry)
     if (!mw_read_memory((const void*)rawResource.data, rawResource.length, &buffer))
     {
         logError("Failed to read WAV data for resource %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1307,7 +1094,6 @@ void wres_loadWave(WarContext *context, DatabaseEntry *entry)
     {
         logError("Failed to resample WAV data for resource %d", index);
         mw_free_buffer(&buffer);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1317,20 +1103,15 @@ void wres_loadWave(WarContext *context, DatabaseEntry *entry)
     resource->audio.length = resampledBuffer.data_length;
 
     mw_free_buffer(&buffer);
-
-    TracyCZoneEnd(ctx);
 }
 
 void wres_loadVoc(WarContext *context, DatabaseEntry *entry)
 {
-    TracyCZoneN(ctx, "wres_loadVoc", true);
-
     s32 index = entry->index;
     WarRawResource rawResource = context->warFile->resources[index];
     if (rawResource.placeholder)
     {
         logInfo("Placeholder resource found at: %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1338,7 +1119,6 @@ void wres_loadVoc(WarContext *context, DatabaseEntry *entry)
     if (!mv_read_memory((const void*)rawResource.data, rawResource.length, &buffer))
     {
         logError("Failed to read VOC data for resource %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1347,7 +1127,6 @@ void wres_loadVoc(WarContext *context, DatabaseEntry *entry)
     {
         logError("Failed to resample VOC data for resource %d", index);
         mv_free_buffer(&buffer);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1357,28 +1136,15 @@ void wres_loadVoc(WarContext *context, DatabaseEntry *entry)
     resource->audio.length = resampledBuffer.data_length;
 
     mv_free_buffer(&buffer);
-
-    TracyCZoneEnd(ctx);
 }
 
 void wres_loadCursor(WarContext* context, DatabaseEntry* entry)
 {
-    TracyCZoneN(ctx, "wres_loadCursor", true);
-
-#ifndef WAR_FRANK
-    u8 paletteData[PALETTE_LENGTH];
-    wres_getPalette(context, entry->param1, entry->param2, paletteData);
-
-    u32 rgba[PALETTE_LENGTH/3];
-    buildRgbaLut(paletteData, rgba);
-#endif
-
     s32 index = entry->index;
     WarRawResource rawResource = context->warFile->resources[index];
     if (rawResource.placeholder)
     {
         logInfo("Placeholder resource found at: %d", index);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -1387,43 +1153,26 @@ void wres_loadCursor(WarContext* context, DatabaseEntry* entry)
     u16 width = readu16(rawResource.data, 4);
     u16 height = readu16(rawResource.data, 6);
 
-#ifdef WAR_FRANK
     u8 *pixels = (u8*)wm_alloc(width * height);
     memcpy(pixels, rawResource.data + 8, width * height);
-#else
-    u8 *pixels = (u8*)wm_alloc(width * height * 4 * sizeof(u8));
-    for (s32 i = 0; i < width * height; ++i)
-    {
-        u32 colorIndex = readu8(rawResource.data, 8 + i);
-        memcpy(&pixels[i*4], &rgba[colorIndex], sizeof(u32));
-    }
-#endif
 
     WarResource *resource = wres_getOrCreateResource(context, index);
     resource->type = WAR_RESOURCE_TYPE_CURSOR;
-#ifdef WAR_FRANK
     resource->cursor.lut = wres_getPaletteLut(context, entry->param1, entry->param2);
-#endif
     resource->cursor.hotx = hotx;
     resource->cursor.hoty = hoty;
     resource->cursor.width = width;
     resource->cursor.height = height;
     resource->cursor.pixels = pixels;
-
-    TracyCZoneEnd(ctx);
 }
 
 void wres_loadResource(WarContext *context, DatabaseEntry *entry)
 {
-    TracyCZoneN(ctx, "wres_loadResource", true);
-
-#ifdef WAR_FRANK
     // the raw entry only lives while its resource is built from it
     s32 rawIndex = entry->index;
     bool wasLoading = resourceLoading[rawIndex];
     resourceLoading[rawIndex] = true;
     wfile_readResource(context->warFile, rawIndex);
-#endif
 
     switch (entry->type)
     {
@@ -1512,10 +1261,6 @@ void wres_loadResource(WarContext *context, DatabaseEntry *entry)
         }
     }
 
-#ifdef WAR_FRANK
     wfile_releaseResource(context->warFile, rawIndex);
     resourceLoading[rawIndex] = wasLoading;
-#endif
-
-    TracyCZoneEnd(ctx);
 }

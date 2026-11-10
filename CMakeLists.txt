@@ -22,7 +22,7 @@ function(add_game name main)
     add_executable(${name} ${main} src/port/fsdl.c)
     target_include_directories(${name} PRIVATE src/port/include src src/engine third_party)
     # Same budget as the board (master/game.cmake): PSRAM heap minus libc's share.
-    target_compile_definitions(${name} PRIVATE WAR_FRANK=1
+    target_compile_definitions(${name} PRIVATE
         WAR_PERM_SIZE=6815744 WAR_FRAME_SIZE=262144 WAR_AUDIO_SIZE=393216)
     target_link_libraries(${name} PRIVATE plat_host m)
     if(WIN32)

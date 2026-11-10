@@ -975,11 +975,6 @@ void wact_initUnitActionDefs(void)
     initOrcCorpseActionDefs();
 }
 
-bool wact_equalsActionStep(const WarUnitActionStep step1, const WarUnitActionStep step2)
-{
-    return step1.type == step2.type && step1.param == step2.param;
-}
-
 shlDefineList(WarUnitActionStepList, WarUnitActionStep)
 
 void wact_addUnitActions(WarContext* context, WarEntity* entity)
@@ -1092,9 +1087,7 @@ void wact_updateAction(WarContext* context, WarEntity* entity)
     }
 
     WarUnitActionStep step = actionDef->steps.items[action->stepIndex];
-#ifdef WAR_FRANK
     f64 frankLastEnd = 0;   // the wait just over: the next one counts from it, not from this frame
-#endif
     if (step.type == WAR_ACTION_STEP_WAIT)
     {
         if (context->gameTime < action->waitEndGameTime)
@@ -1102,9 +1095,7 @@ void wact_updateAction(WarContext* context, WarEntity* entity)
             return;
         }
 
-#ifdef WAR_FRANK
         frankLastEnd = action->waitEndGameTime;
-#endif
         action->waitEndGameTime = 0;
 
         action->stepIndex++;
@@ -1199,7 +1190,6 @@ void wact_updateAction(WarContext* context, WarEntity* entity)
         step = actionDef->steps.items[action->stepIndex];
     }
 
-#ifdef WAR_FRANK
     if (actionDef->frankTicks)
     {
         // the original's ticks, 30 ms at normal speed; its speed upgrades
@@ -1208,7 +1198,6 @@ void wact_updateAction(WarContext* context, WarEntity* entity)
         action->waitEndGameTime = from + (f32)step.param * 0.03f;
         return;
     }
-#endif
     action->waitEndGameTime = context->gameTime + (__frameCountToSeconds(step.param) * action->scale);
 }
 
@@ -1222,6 +1211,4 @@ void wact_resetAction(WarContext* context, WarEntity* entity, WarUnitActionType 
     resetAction(action);
 }
 
-#ifdef WAR_FRANK
 #include "port/scripts.c"
-#endif

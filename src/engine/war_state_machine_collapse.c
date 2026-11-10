@@ -4,36 +4,26 @@
 
 #include "war_animations.h"
 
-#include "TracyC.h"
-
 WarStateCollapse* wst_createCollapseState(WarContext* context, WarEntity* entity)
 {
-    TracyCZoneN(ctx, "wst_createCollapseState", true);
-
     WarStateRef ref = wst_allocState(context, WAR_STATE_COLLAPSE, entity->id);
     if (!WAR_STATE_REF_IS_VALID(ref))
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     WarStateCollapse* state = (WarStateCollapse*)wst_deref(context, ref);
     if (!state)
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
-    TracyCZoneEnd(ctx);
     return state;
 }
 
 void wst_enterCollapseState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_enterCollapseState", true);
-#ifdef WAR_FRANK
     wos_beginDeath(context, entity);
-#endif
 
     WarMap* map = context->map;
     assert(map);
@@ -60,26 +50,18 @@ void wst_enterCollapseState(WarContext* context, WarEntity* entity, WarState* st
 
     wpath_setFreeTiles(&map->finder, (s32)position.x, (s32)position.y, (s32)unitSize.x, (s32)unitSize.y);
     wmap_removeEntityFromSelection(context, entity->id);
-
-    TracyCZoneEnd(ctx);
 }
 
 void wst_updateCollapseState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_updateCollapseState", true);
-
     NOT_USED(state);
 
     we_removeEntityById(context, entity->id);
-
-    TracyCZoneEnd(ctx);
 }
 
 
 void wst_updateCollapseStates(WarContext* context)
 {
-    TracyCZoneN(ctx, "wst_updateCollapseStates", true);
-
     WarEntityManager* manager = we_getEntityManager(context);
     WarStateStorage*  storage = &manager->stateStorage;
     WarStateCollapse*      states  = storage->collapse;
@@ -98,6 +80,4 @@ void wst_updateCollapseStates(WarContext* context)
 
         wst_updateCollapseState(context, entity, (WarStateBase*)state);
     }
-
-    TracyCZoneEnd(ctx);
 }

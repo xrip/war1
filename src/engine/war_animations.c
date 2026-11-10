@@ -9,11 +9,6 @@
 
 #define ANIM_NAME_MAX_LENGTH 50
 
-bool wanim_equalsSpriteAnimation(const WarSpriteAnimation* anim1, const WarSpriteAnimation* anim2)
-{
-    return wsv_equals(wstr_view(&anim1->name), wstr_view(&anim2->name));
-}
-
 shlDefineList(WarSpriteAnimationList, WarSpriteAnimation)
 
 WarSpriteAnimation wanim_createAnimation(WarContext* context, String name, WarSprite sprite, f32 frameDelay, bool loop)
@@ -53,20 +48,6 @@ void wanim_addAnimation(WarContext* context, WarEntity* entity, WarSpriteAnimati
 void wanim_addAnimationFrame(WarSpriteAnimation* animation, s32 frameIndex)
 {
     S32ListAdd(&animation->frames, frameIndex);
-}
-
-void wanim_addAnimationFrames(WarSpriteAnimation* animation, s32 count, s32 frameIndices[])
-{
-    if (frameIndices)
-    {
-        for(s32 i = 0; i < count; i++)
-            wanim_addAnimationFrame(animation, frameIndices[i]);
-    }
-    else
-    {
-        for(s32 i = 0; i < count; i++)
-            wanim_addAnimationFrame(animation, i);
-    }
 }
 
 void wanim_addAnimationFramesRange(WarSpriteAnimation* animation, s32 from, s32 to)
@@ -181,8 +162,6 @@ void wanim_updateAnimation(WarContext* context, WarEntity* entity, WarSpriteAnim
 
 void wanim_updateAnimations(WarContext* context)
 {
-    TracyCZoneN(ctx, "UpdateAnimations", 1);
-
     WarEntityManager* manager = we_getEntityManager(context);
     assert(manager);
 
@@ -197,36 +176,13 @@ void wanim_updateAnimations(WarContext* context)
                 WarSpriteAnimation* anim = &animations->animations.items[k];
                 wanim_updateAnimation(context, entity, anim);
             }
-#ifdef WAR_FRANK
             // frank: a spent effect (a spell's sparkle, an impact) leaves
             // its entity empty; freed, the pool no longer runs out in a
             // long game (512 entities, about 400 of them spent effects)
             if (context->map && entity->type == WAR_ENTITY_TYPE_ANIMATION && animations->animations.count == 0)
                 we_removeEntity(context, entity);
-#endif
         }
     }
-
-    TracyCZoneEnd(ctx);
-}
-
-WarSpriteAnimation* wanim_findAnimation(WarContext* context, WarEntity* entity, StringView name)
-{
-    NOT_USED(context);
-
-    WarAnimationsComponent* animations = we_getAnimationsComponent(context, entity);
-    assert(animations);
-
-    for(s32 i = 0; i < animations->animations.count; i++)
-    {
-        WarSpriteAnimation* anim = &animations->animations.items[i];
-        if (wsv_equals(wstr_view(&anim->name), name))
-        {
-            return anim;
-        }
-    }
-
-    return NULL;
 }
 
 bool wanim_containsAnimation(WarContext* context, WarEntity* entity, StringView name)

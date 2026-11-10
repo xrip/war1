@@ -2,36 +2,26 @@
 
 #include "war_actions.h"
 
-#include "TracyC.h"
-
 WarStateDeath* wst_createDeathState(WarContext* context, WarEntity* entity)
 {
-    TracyCZoneN(ctx, "wst_createDeathState", true);
-
     WarStateRef ref = wst_allocState(context, WAR_STATE_DEATH, entity->id);
     if (!WAR_STATE_REF_IS_VALID(ref))
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     WarStateDeath* state = (WarStateDeath*)wst_deref(context, ref);
     if (!state)
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
-    TracyCZoneEnd(ctx);
     return state;
 }
 
 void wst_enterDeathState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_enterDeathState", true);
-#ifdef WAR_FRANK
     wos_beginDeath(context, entity);
-#endif
 
     WarMap* map = context->map;
     assert(map);
@@ -47,28 +37,20 @@ void wst_enterDeathState(WarContext* context, WarEntity* entity, WarState* state
 
     s32 deathDuration = wact_getActionDuration(context, entity, WAR_ACTION_TYPE_DEATH);
     state->nextUpdateGameTime = context->gameTime + wmap_getMapScaledTime(context, __frameCountToSeconds(deathDuration));
-
-    TracyCZoneEnd(ctx);
 }
 
 void wst_updateDeathState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_updateDeathState", true);
-
     NOT_USED(state);
 
     // when this state updates there will have pass the time of the death animation,
     // using the delay field of the states
-#ifdef WAR_FRANK
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
     const bool hiddenCorpse = wai_drivesTicks(context) && unit->frankOriginalSlot &&
         (we_getEntityManager(context)->originalUnits[unit->frankOriginalSlot - 1].flags & WOR_INSIDE);
-#endif
     if (!wu_isCorpseUnit(context, entity) && !wu_isCatapultUnit(context, entity) &&
         !wu_isSummonUnit(context, entity) && !wu_isSkeletonUnit(context, entity)
-#ifdef WAR_FRANK
         && !hiddenCorpse
-#endif
         )
     {
         vec2 tile = wu_getUnitCenterTile(context, entity);
@@ -87,24 +69,18 @@ void wst_updateDeathState(WarContext* context, WarEntity* entity, WarState* stat
         ));
 
         wu_setUnitDirection(context, corpse, wu_getUnitDirection(context, entity));
-#ifdef WAR_FRANK
         we_getUnitComponent(context, corpse)->frankCorpseSlot = unit->frankOriginalSlot;
-#endif
 
         WarStateDeath* deathState = wst_createDeathState(context, corpse);
         wst_resetState(context, corpse, (WarStateBase*)deathState, WAR_TRANSITION_CAUSE_LIFECYCLE);
     }
 
     we_removeEntityById(context, entity->id);
-
-    TracyCZoneEnd(ctx);
 }
 
 
 void wst_updateDeathStates(WarContext* context)
 {
-    TracyCZoneN(ctx, "wst_updateDeathStates", true);
-
     WarEntityManager* manager = we_getEntityManager(context);
     WarStateStorage*  storage = &manager->stateStorage;
     WarStateDeath*      states  = storage->death;
@@ -123,6 +99,4 @@ void wst_updateDeathStates(WarContext* context)
 
         wst_updateDeathState(context, entity, (WarStateBase*)state);
     }
-
-    TracyCZoneEnd(ctx);
 }

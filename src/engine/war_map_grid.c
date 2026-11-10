@@ -25,8 +25,6 @@ void wgrid_clear(WarContext* context)
 
 void wgrid_build(WarContext* context)
 {
-    TracyCZoneN(ctx, "wgrid_build", 1);
-
     WarMap* map = context->map;
     assert(map);
 
@@ -69,8 +67,6 @@ void wgrid_build(WarContext* context)
         grid->next[i] = grid->head[cellIndex];
         grid->head[cellIndex] = i;
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 vec2 wgrid_tileFromMapTile(vec2 tilePosition)

@@ -104,12 +104,8 @@ const WarUnitData unitsData[] =
     { WAR_UNIT_LUMBERMILL_HUMANS,   317, WAR_PORTRAIT_LUMBERMILL_HUMANS,  3, 3, WSV_INIT("MILL")            },
     { WAR_UNIT_LUMBERMILL_ORCS,     318, WAR_PORTRAIT_LUMBERMILL_ORCS,    3, 3, WSV_INIT("MILL")            },
     { WAR_UNIT_STABLE,              319, WAR_PORTRAIT_STABLE,             3, 3, WSV_INIT("STABLES")         },
-#ifdef WAR_FRANK
     // frank: 3 by 2 in the original (WAR.EXE 0x51ABC)
     { WAR_UNIT_KENNEL,              320, WAR_PORTRAIT_KENNEL,             3, 2, WSV_INIT("KENNEL")          },
-#else
-    { WAR_UNIT_KENNEL,              320, WAR_PORTRAIT_KENNEL,             3, 3, WSV_INIT("KENNEL")          },
-#endif
     { WAR_UNIT_BLACKSMITH_HUMANS,   321, WAR_PORTRAIT_BLACKSMITH_HUMANS,  2, 2, WSV_INIT("BLACKSMITH")      },
     { WAR_UNIT_BLACKSMITH_ORCS,     322, WAR_PORTRAIT_BLACKSMITH_ORCS,    2, 2, WSV_INIT("BLACKSMITH")      },
     { WAR_UNIT_STORMWIND,           323, WAR_PORTRAIT_STORMWIND,          4, 4, WSV_INIT("STORMWIND")       },
@@ -255,17 +251,11 @@ const WarUnitStats unitStats[] =
     { WAR_UNIT_WARLOCK,           2,     3,     0,     40,  255,     6,      0,    __bts(900),    900,      0,     -1,   { 13.984f, 13.984f, 13.984f } },
     { WAR_UNIT_CLERIC,            1,     3,     0,     40,  255,     6,      0,    __bts(800),    700,      0,     -1,   { 13.984f, 13.984f, 13.984f } },
     { WAR_UNIT_NECROLYTE,         2,     3,     0,     40,  255,     6,      0,    __bts(800),    700,      0,     -1,   { 13.984f, 13.984f, 13.984f } },
-#ifdef WAR_FRANK
     // frank: 150 hit points in the original
     { WAR_UNIT_MEDIVH,            5,     5,     0,    150,   -1,    10,      0,            -1,     -1,     -1,     -1,   { 19.584f, 19.584f, 19.584f } },
-#else
-    { WAR_UNIT_MEDIVH,            5,     5,     0,    110,   -1,    10,      0,            -1,     -1,     -1,     -1,   { 19.584f, 19.584f, 19.584f } },
-#endif
     { WAR_UNIT_LOTHAR,            1,     2,     5,     50,   -1,     1,     15,            -1,     -1,     -1,     -1,   { 19.584f, 19.584f, 19.584f } },
-#ifdef WAR_FRANK
     // frank: the wounded soldier placed on human mission 4 (a non-combatant)
     { WAR_UNIT_WOUNDED,           1,     2,     0,     40,   -1,    -1,     -1,            -1,     -1,     -1,     -1,   { 13.984f, 13.984f, 13.984f } },
-#endif
     { WAR_UNIT_GRIZELDA,          1,     2,     0,     30,   -1,    -1,     -1,            -1,     -1,     -1,     -1,   { 13.984f, 13.984f, 13.984f } },
     { WAR_UNIT_GARONA,            1,     2,     0,     30,   -1,    -1,     -1,            -1,     -1,     -1,     -1,   { 13.984f, 13.984f, 13.984f } },
     { WAR_UNIT_OGRE,              1,     2,     3,     60,   -1,     1,     12,            -1,     -1,     -1,     -1,   { 17.936f, 17.936f, 17.936f } },
@@ -273,22 +263,14 @@ const WarUnitStats unitStats[] =
     { WAR_UNIT_SLIME,             1,     2,    10,    150,   -1,     1,      0,            -1,     -1,     -1,     -1,   { 26.064f, 26.064f, 26.064f } },
     { WAR_UNIT_FIRE_ELEMENTAL,    1,     2,     0,    200,   -1,     0,     40,            -1,     -1,     -1,     -1,   { 17.936f, 17.936f, 17.936f } },
     { WAR_UNIT_SCORPION,          1,     2,     0,     30,  255,     3,      0,            -1,     -1,     -1,     45,   { 26.064f, 26.064f, 26.064f } },
-#ifdef WAR_FRANK
     // frank: armor 4 in the original
     { WAR_UNIT_BRIGAND,           1,     2,     4,     40,   -1,     1,      9,            -1,     -1,     -1,     -1,   { 16.736f, 16.736f, 16.736f } },
-#else
-    { WAR_UNIT_BRIGAND,           1,     2,     1,     40,   -1,     1,      9,            -1,     -1,     -1,     -1,   { 16.736f, 16.736f, 16.736f } },
-#endif
     { WAR_UNIT_THE_DEAD,          1,     2,     2,     30,  255,     1,      9,            -1,     -1,     -1,     -1,   { 13.984f, 13.984f, 13.984f } },
     { WAR_UNIT_SKELETON,          1,     2,     1,     40,   -1,     1,      4,            -1,     -1,     -1,     45,   { 13.984f, 13.984f, 13.984f } },
     { WAR_UNIT_DAEMON,            1,     2,     0,    300,  255,     0,     65,            -1,     -1,     -1,     45,   { 17.936f, 17.936f, 17.936f } },
     { WAR_UNIT_WATER_ELEMENTAL,   3,     4,     0,    250,  255,    40,      0,            -1,     -1,     -1,     45,   { 17.936f, 17.936f, 17.936f } },
 };
-#ifdef WAR_FRANK
 static_assert(arrayLength(unitStats) == 29, "unitStats array size does not match WAR_UNIT_COUNT");
-#else
-static_assert(arrayLength(unitStats) == 28, "unitStats array size does not match WAR_UNIT_COUNT");
-#endif
 
 const WarBuildingStats buildingStats[] =
 {
@@ -386,19 +368,12 @@ static_assert(arrayLength(spellData) == 12, "spellData array size does not match
 const WarSpellStats spellStats[] =
 {
     // summons
-#ifdef WAR_FRANK
     // frank: the original's costs (WAR.EXE 0x27AB0: 60 a spider or
     // scorpion, up to four a cast; 255 a daemon or water elemental)
     { WAR_SUMMON_SPIDER,             60,  0,  0 },
     { WAR_SUMMON_SCORPION,           60,  0,  0 },
     { WAR_SUMMON_DAEMON,            255,  0,  0 },
     { WAR_SUMMON_WATER_ELEMENTAL,   255,  0,  0 },
-#else
-    { WAR_SUMMON_SPIDER,             51,  0,  0 },
-    { WAR_SUMMON_SCORPION,           51,  0,  0 },
-    { WAR_SUMMON_DAEMON,            255,  0,  0 },
-    { WAR_SUMMON_WATER_ELEMENTAL,   250,  0,  0 },
-#endif
 
     // spells
     { WAR_SPELL_HEALING,              6,  0,  6 },
@@ -779,7 +754,6 @@ const WarSpellData* wu_getSpellData(WarSpellType type)
     FIND_BY_TYPE(spellData, type);
 }
 
-#ifdef WAR_FRANK
 // original 20 dragon, 21 spider, 22 slime, 23 fire elemental, 24 scorpion,
 // 25 brigand, 26 skeleton (raise dead makes them), 27 the dead, 28 daemon,
 // 31 water elemental (WAR.EXE 1.20: its name list, stat tables, spells)
@@ -805,7 +779,6 @@ f32 wu_unitTrainSeconds(const WarUnitStats* stats)
     const s32 steps = stats->buildTime * 1000 / 80 / 10;
     return (f32)(steps * 18 + 27) * 0.03f;
 }
-#endif
 
 const WarUnitStats* wu_getUnitStats(WarUnitType type)
 {
@@ -864,17 +837,6 @@ const WarUnitCommandMapping* wu_getCommandMappingFromUpgradeType(WarUpgradeType 
     return &commandMappings[index];
 }
 
-const WarUnitCommandMapping* wu_getCommandMappingFromSpellType(WarSpellType spellType)
-{
-    s32 index = 50;
-    s32 length = arrayLength(commandMappings);
-    while (index < length && commandMappings[index].mappedType != spellType)
-        index++;
-
-    assert(index < length);
-    return &commandMappings[index];
-}
-
 bool wu_isUnit(const WarEntity* entity)
 {
     return entity->type == WAR_ENTITY_TYPE_UNIT;
@@ -889,19 +851,9 @@ bool wu_isUnitOfType(WarContext* ctx, const WarEntity* entity, WarUnitType unitT
     return unit && unit->type == unitType;
 }
 
-bool wu_isRoad(const WarEntity* entity)
-{
-    return entity->type == WAR_ENTITY_TYPE_ROAD;
-}
-
 bool wu_isWall(const WarEntity* entity)
 {
     return entity->type == WAR_ENTITY_TYPE_WALL;
-}
-
-bool wu_isRuin(const WarEntity* entity)
-{
-    return entity->type == WAR_ENTITY_TYPE_RUIN;
 }
 
 bool wu_isDudeUnitType(WarUnitType type)
@@ -1039,63 +991,6 @@ bool wu_isRangeUnitType(WarUnitType type)
             return false;
     }
 }
-bool wu_isMeleeUnitType(WarUnitType type)
-{
-    switch (type)
-    {
-        case WAR_UNIT_FOOTMAN:
-        case WAR_UNIT_GRUNT:
-        case WAR_UNIT_KNIGHT:
-        case WAR_UNIT_RAIDER:
-        case WAR_UNIT_CLERIC:
-        case WAR_UNIT_LOTHAR:
-        case WAR_UNIT_OGRE:
-        case WAR_UNIT_SPIDER:
-        case WAR_UNIT_SLIME:
-        case WAR_UNIT_FIRE_ELEMENTAL:
-        case WAR_UNIT_SCORPION:
-        case WAR_UNIT_BRIGAND:
-        case WAR_UNIT_SKELETON:
-        case WAR_UNIT_DAEMON:
-            return true;
-
-        default:
-            return false;
-    }
-}
-bool wu_isFistUnitType(WarUnitType type)
-{
-    switch (type)
-    {
-        case WAR_UNIT_OGRE:
-        case WAR_UNIT_SPIDER:
-        case WAR_UNIT_SLIME:
-        case WAR_UNIT_FIRE_ELEMENTAL:
-        case WAR_UNIT_SCORPION:
-            return true;
-
-        default:
-            return false;
-    }
-}
-bool wu_isSwordUnitType(WarUnitType type)
-{
-    switch (type)
-    {
-        case WAR_UNIT_FOOTMAN:
-        case WAR_UNIT_GRUNT:
-        case WAR_UNIT_KNIGHT:
-        case WAR_UNIT_RAIDER:
-        case WAR_UNIT_LOTHAR:
-        case WAR_UNIT_BRIGAND:
-        case WAR_UNIT_SKELETON:
-        case WAR_UNIT_DAEMON:
-            return true;
-
-        default:
-            return false;
-    }
-}
 bool wu_isMagicUnitType(WarUnitType type)
 {
     switch (type)
@@ -1165,12 +1060,10 @@ bool wu_isClericOrNecrolyteUnitType(WarUnitType type)
 }
 bool wu_isSummonUnitType(WarUnitType type)
 {
-#ifdef WAR_FRANK
     // frank: the original's summoned types (they decay, WAR.EXE 0x51DF0):
     // spiders, scorpions, raised skeletons, daemons, water elementals
     return type == WAR_UNIT_SPIDER || type == WAR_UNIT_SCORPION || type == WAR_UNIT_SKELETON ||
            type == WAR_UNIT_DAEMON || type == WAR_UNIT_WATER_ELEMENTAL;
-#endif
     switch (type)
     {
         case WAR_UNIT_SCORPION:
@@ -1213,24 +1106,6 @@ bool wu_isRangeUnit(WarContext* context, WarEntity* entity)
 {
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
     return unit && wu_isRangeUnitType(unit->type);
-}
-
-bool wu_isMeleeUnit(WarContext* context, WarEntity* entity)
-{
-    WarUnitComponent* unit = we_getUnitComponent(context, entity);
-    return unit && wu_isMeleeUnitType(unit->type);
-}
-
-bool wu_isFistUnit(WarContext* context, WarEntity* entity)
-{
-    WarUnitComponent* unit = we_getUnitComponent(context, entity);
-    return unit && wu_isFistUnitType(unit->type);
-}
-
-bool wu_isSwordUnit(WarContext* context, WarEntity* entity)
-{
-    WarUnitComponent* unit = we_getUnitComponent(context, entity);
-    return unit && wu_isSwordUnitType(unit->type);
 }
 
 bool wu_isMagicUnit(WarContext* context, WarEntity* entity)
@@ -1344,16 +1219,6 @@ bool wu_isHumanUnit(WarContext* context, WarEntity* entity)
     return wu_getUnitRace(context, entity) == WAR_RACE_HUMANS;
 }
 
-bool wu_isOrcUnit(WarContext* context, WarEntity* entity)
-{
-    return wu_getUnitRace(context, entity) == WAR_RACE_ORCS;
-}
-
-bool wu_isNeutralUnit(WarContext* context, WarEntity* entity)
-{
-    return wu_getUnitRace(context, entity) == WAR_RACE_NEUTRAL;
-}
-
 WarProjectileType wu_getProjectileType(WarUnitType type)
 {
     assert(wu_isRangeUnitType(type));
@@ -1400,43 +1265,6 @@ WarUnitType wu_getTownHallOfRace(WarRace race)
         case WAR_RACE_HUMANS: return WAR_UNIT_TOWNHALL_HUMANS;
         case WAR_RACE_ORCS: return WAR_UNIT_TOWNHALL_ORCS;
         default: return WAR_UNIT_TOWNHALL_HUMANS;
-    }
-}
-WarUnitType wu_getProducerUnitOfType(WarUnitType type)
-{
-    switch (type)
-    {
-        case WAR_UNIT_PEASANT:
-            return WAR_UNIT_TOWNHALL_HUMANS;
-        case WAR_UNIT_PEON:
-            return WAR_UNIT_TOWNHALL_ORCS;
-
-        case WAR_UNIT_FOOTMAN:
-        case WAR_UNIT_CATAPULT_HUMANS:
-        case WAR_UNIT_KNIGHT:
-        case WAR_UNIT_ARCHER:
-            return WAR_UNIT_BARRACKS_HUMANS;
-
-        case WAR_UNIT_GRUNT:
-        case WAR_UNIT_CATAPULT_ORCS:
-        case WAR_UNIT_RAIDER:
-        case WAR_UNIT_SPEARMAN:
-            return WAR_UNIT_BARRACKS_ORCS;
-
-        case WAR_UNIT_CONJURER:
-            return WAR_UNIT_TOWER_HUMANS;
-        case WAR_UNIT_WARLOCK:
-            return WAR_UNIT_TOWER_ORCS;
-        case WAR_UNIT_CLERIC:
-            return WAR_UNIT_CHURCH;
-        case WAR_UNIT_NECROLYTE:
-            return WAR_UNIT_TEMPLE;
-
-        default:
-        {
-            logWarning("There is not producer unit for unit type %d", type);
-            return -1;
-        }
     }
 }
 
@@ -1522,10 +1350,8 @@ vec2 wu_getUnitPosition(WarContext* context, WarEntity* entity)
 
 vec2 wu_getUnitTile(WarContext* context, WarEntity* entity)
 {
-#ifdef WAR_FRANK
     vec2 stepping;
     if (wmv_steppingTile(context, entity, &stepping)) return stepping;
-#endif
     vec2 position = wu_getUnitPosition(context, entity);
     return wmap_mapToTileCoordinatesV(position);
 }
@@ -1543,10 +1369,8 @@ vec2 wu_getUnitCenterPosition(WarContext* context, WarEntity* entity)
 
 vec2 wu_getUnitCenterTile(WarContext* context, WarEntity* entity)
 {
-#ifdef WAR_FRANK
     vec2 stepping;
     if (wmv_steppingTile(context, entity, &stepping)) return stepping;
-#endif
     vec2 position = wu_getUnitCenterPosition(context, entity);
     return wmap_mapToTileCoordinatesV(position);
 }
@@ -1631,16 +1455,6 @@ void wu_setUnitDirectionFromDiff(WarContext* context, WarEntity* entity, f32 dx,
 
     WarDirection direction = wu_getDirectionFromDiff(dx, dy);
     wu_setUnitDirection(context, entity, direction);
-}
-
-f32 wu_getUnitActionScale(WarContext* context, WarEntity* entity)
-{
-    assert(wu_isUnit(entity));
-
-    WarUnitComponent* unit = we_getUnitComponent(context, entity);
-    assert(unit);
-
-    return 1 - unit->speed * 0.1f;
 }
 
 vec2 wu_unitTileOnTarget(WarContext* context, WarEntity* entity, WarEntity* targetEntity)
@@ -1772,9 +1586,7 @@ bool wu_areEnemies(WarContext* context, WarEntity* entity1, WarEntity* entity2)
 	if (entity1->id == entity2->id) return false;
     if (unit1->player == unit2->player) return false;
 
-#ifdef WAR_FRANK
     if (wai_drivesTicks(context)) return wor_areEnemies(unit1->player, unit2->player);
-#endif
     WarPlayerInfo* otherPlayer = &map->players[unit2->player];
     return !isNeutralPlayer(otherPlayer);
 }
@@ -1865,11 +1677,6 @@ s32 wu_getTotalNumberOfUnits(WarContext* context, u8 player)
     return count;
 }
 
-bool wu_playerHasUnit(WarContext* context, u8 player, WarUnitType unitType)
-{
-    return wu_getNumberOfUnitsOfType(context, player, unitType) > 0;
-}
-
 bool wu_playerHasBuilding(WarContext* context, u8 player, WarUnitType unitType)
 {
     return wu_getNumberOfBuildingsOfType(context, player, unitType, true) > 0;
@@ -1898,11 +1705,6 @@ bool wu_canRepairEntity(WarContext* context, WarEntity* worker, WarEntity* targe
     return wu_getOwningPlayer(context, worker) == wu_getOwningPlayer(context, target);
 }
 
-bool wu_isValidUnitType(WarUnitType type)
-{
-    return inRange(type, WAR_UNIT_FOOTMAN, WAR_UNIT_COUNT);
-}
-
 s32 wu_getTotalNumberOfDudes(WarContext* context, u8 player)
 {
     s32 count = 0;
@@ -1916,30 +1718,6 @@ s32 wu_getTotalNumberOfDudes(WarContext* context, u8 player)
             WarUnitComponent* unit = we_getUnitComponent(context, entity);
             if (unit && unit->player == player)
             {
-                count++;
-            }
-        }
-    }
-
-    return count;
-}
-
-s32 wu_getTotalNumberOfBuildings(WarContext* context, u8 player, bool alreadyBuilt)
-{
-    s32 count = 0;
-
-    WarEntityList* units = we_getEntitiesOfType(context, WAR_ENTITY_TYPE_UNIT);
-    for (s32 i = 0; i < units->count; i++)
-    {
-        WarEntity* entity = units->items[i];
-        if (entity)
-        {
-            WarUnitComponent* unit = we_getUnitComponent(context, entity);
-            if (unit && unit->player == player && wu_isBuildingUnit(context, entity))
-            {
-                if (alreadyBuilt && (wst_isBuilding(context, entity) || wst_isGoingToBuild(context, entity)))
-                    continue;
-
                 count++;
             }
         }
@@ -1968,29 +1746,6 @@ s32 wu_getNumberOfBuildingsOfType(WarContext* context, u8 player, WarUnitType un
                 if (alreadyBuilt && (wst_isBuilding(context, entity) || wst_isGoingToBuild(context, entity)))
                     continue;
 
-                count++;
-            }
-        }
-    }
-
-    return count;
-}
-
-s32 wu_getNumberOfUnitsOfType(WarContext* context, u8 player, WarUnitType unitType)
-{
-    s32 count = 0;
-
-    WarEntityList* units = we_getEntitiesOfType(context, WAR_ENTITY_TYPE_UNIT);
-    for (s32 i = 0; i < units->count; i++)
-    {
-        WarEntity* entity = units->items[i];
-        if (entity)
-        {
-            WarUnitComponent* unit = we_getUnitComponent(context, entity);
-            if (unit &&
-                unit->player == player &&
-                unit->type == unitType)
-            {
                 count++;
             }
         }

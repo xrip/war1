@@ -6,43 +6,31 @@
 #include "war_audio.h"
 #include "war_units.h"
 
-#include "TracyC.h"
-
-#ifdef WAR_FRANK
 #include "port/fight.inc"
-#endif
 
 WarStateAttack* wst_createAttackState(WarContext* context, WarEntity* entity, WarEntityId targetEntityId, vec2 targetPosition)
 {
-    TracyCZoneN(ctx, "wst_createAttackState", true);
-
     WarStateRef ref = wst_allocState(context, WAR_STATE_ATTACK, entity->id);
     if (!WAR_STATE_REF_IS_VALID(ref))
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     WarStateAttack* state = (WarStateAttack*)wst_deref(context, ref);
     if (!state)
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     state->targetEntityId = targetEntityId;
     state->targetPosition = targetPosition;
-#ifdef WAR_FRANK
     state->frankOrder = 5;
     state->frankPursue = true;
     state->frankPrepared = false;
-#endif
 
-    TracyCZoneEnd(ctx);
     return state;
 }
 
-#ifdef WAR_FRANK
 void wst_enterAttackState(WarContext* context, WarEntity* entity, WarStateBase* state)
 {
     NOT_USED(state);
@@ -98,22 +86,16 @@ static void wst_frankPrepareAttack(WarContext* context, WarEntity* entity, WarSt
     move->frankNextOrder = state->frankOrder;
     wst_pushState(context, entity, (WarStateBase*)move, WAR_TRANSITION_CAUSE_COMPLETION);
 }
-#endif
 
 void wst_updateAttackState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_updateAttackState", true);
-
     WarStateAttack* s = (WarStateAttack*)state;
 
-#ifdef WAR_FRANK
     if (wai_drivesTicks(context))
     {
         if (!s->frankPrepared) wst_frankPrepareAttack(context, entity, s);
-        TracyCZoneEnd(ctx);
         return;
     }
-#endif
     WarMap* map = context->map;
     assert(map);
 
@@ -133,15 +115,12 @@ void wst_updateAttackState(WarContext* context, WarEntity* entity, WarState* sta
     vec2 targetTile = wmap_mapToTileCoordinatesV(targetPosition);
 
     // if the entity to attack doesn't exists, go to the attacking point or go idle
-#ifdef WAR_FRANK
     // frank: a unit's target gone: the end comes at the attack script's
     // checkpoint (port/fight.inc)
     if (!targetEntity && targetEntityId && wai_drivesTicks(context))
     {
-        TracyCZoneEnd(ctx);
         return;
     }
-#endif
     if (!targetEntity)
     {
         // when going to an attacking point (where there is no target unit)
@@ -151,12 +130,10 @@ void wst_updateAttackState(WarContext* context, WarEntity* entity, WarState* sta
         {
             WarStateMove* moveState = wst_createMoveState(context, entity, 2, arrayArg(vec2, position, targetPosition), true);
             wst_pushState(context, entity, (WarStateBase*)moveState, WAR_TRANSITION_CAUSE_COMPLETION);
-            TracyCZoneEnd(ctx);
             return;
         }
 
         wst_popState(context, entity, WAR_TRANSITION_CAUSE_COMPLETION, WAR_STATE_RESULT_SUCCESS);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -173,7 +150,6 @@ void wst_updateAttackState(WarContext* context, WarEntity* entity, WarState* sta
     {
         WarStateFollow* followState = wst_createFollowState(context, entity, targetEntityId, targetPosition, stats->range * MEGA_TILE_WIDTH);
         wst_pushState(context, entity, (WarStateBase*)followState, WAR_TRANSITION_CAUSE_COMPLETION);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -181,7 +157,6 @@ void wst_updateAttackState(WarContext* context, WarEntity* entity, WarState* sta
     {
         WarStateFollow* followState = wst_createFollowState(context, entity, 0, targetPosition, stats->range * MEGA_TILE_WIDTH);
         wst_pushState(context, entity, (WarStateBase*)followState, WAR_TRANSITION_CAUSE_COMPLETION);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -191,7 +166,6 @@ void wst_updateAttackState(WarContext* context, WarEntity* entity, WarState* sta
     {
         WarStateWait* waitState = wst_createWaitState(context, entity, 1.0f);
         wst_pushState(context, entity, (WarStateBase*)waitState, WAR_TRANSITION_CAUSE_COMPLETION);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -200,10 +174,8 @@ void wst_updateAttackState(WarContext* context, WarEntity* entity, WarState* sta
     wact_setAction(context, entity, WAR_ACTION_TYPE_ATTACK, false, 1.0f);
 
     WarUnitAction* action = &unit->actions[unit->actionType];
-#if defined(WAR_FRANK) && !defined(FRANK_BOARD)
     if (getenv("WAR_MOVEDEBUG") && atoi(getenv("WAR_MOVEDEBUG")) == (s32)entity->id)
         fprintf(stderr, "attack %.3f act %d step %d last %d\n", context->gameTime, unit->actionType, action->stepIndex, action->lastActionStep);
-#endif
     if (action->lastActionStep == WAR_ACTION_STEP_ATTACK)
     {
         // when the unit begin an attack, it is not invisible anymore
@@ -211,7 +183,6 @@ void wst_updateAttackState(WarContext* context, WarEntity* entity, WarState* sta
         unit->invisibilityTime = 0;
 
         // do damage
-#ifdef WAR_FRANK
         // frank: the blow is the original's (port/fight.inc), on
         // its tick; here only the end of a dead target
         if (wai_drivesTicks(context) && wu_isUnit(targetEntity))
@@ -220,7 +191,6 @@ void wst_updateAttackState(WarContext* context, WarEntity* entity, WarState* sta
             // checkpoint, port/fight.inc)
         }
         else
-#endif
         if (wu_isUnit(targetEntity))
         {
             // if the target entity is dead or is collapsing (in case of buildings), go to idle
@@ -287,15 +257,11 @@ void wst_updateAttackState(WarContext* context, WarEntity* entity, WarState* sta
         action->lastActionStep = WAR_ACTION_STEP_NONE;
         action->lastSoundStep =  WAR_ACTION_STEP_NONE;
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 
 void wst_updateAttackStates(WarContext* context)
 {
-    TracyCZoneN(ctx, "wst_updateAttackStates", true);
-
     WarEntityManager* manager = we_getEntityManager(context);
     WarStateStorage*  storage = &manager->stateStorage;
     WarStateAttack*      states  = storage->attack;
@@ -310,17 +276,13 @@ void wst_updateAttackStates(WarContext* context)
         if (!entity) continue;
 
         if (wst_getActiveState(context, entity) != (WarStateBase*)state) continue;
-#ifdef WAR_FRANK
         if (wai_drivesTicks(context))
         {
             WarEntity* target = state->targetEntityId ? we_findEntity(context, state->targetEntityId) : NULL;
             if (!target || wu_isUnit(target)) continue; // unit combat belongs to the script checkpoint (0x2ECFC)
         }
-#endif
         if (!wst_isNextUpdateTime(context, (WarStateBase*)state)) continue;
 
         wst_updateAttackState(context, entity, (WarStateBase*)state);
     }
-
-    TracyCZoneEnd(ctx);
 }

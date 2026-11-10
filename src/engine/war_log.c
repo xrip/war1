@@ -16,12 +16,8 @@ void wlog_log(SDL_LogPriority priority, const char* file, int line, const char* 
         if (*p == '/' || *p == '\\') shortFile = p + 1;
 
     // Format the message into a local buffer
-#ifdef WAR_FRANK
     // frank: not on the stack (32 KB on the board, and this runs deep)
     static char buf[1024];
-#else
-    char buf[4096];
-#endif
     va_list args;
     va_start(args, fmt);
     vsnprintf(buf, sizeof(buf), fmt, args);

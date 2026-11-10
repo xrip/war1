@@ -22,7 +22,6 @@ shl_allocator_t globalAllocator = {0};
 shl_allocator_t frameAllocator = {0};
 shl_allocator_t audioAllocator = {0};
 
-#ifdef WAR_FRANK
 // frank: the zones are the whole budget; track the high-water marks
 static size_t peakGlobal, peakFrame, peakAudio;
 
@@ -87,7 +86,6 @@ static void* wm__heapReallocFn(void* ctx, void* p, size_t sz)
     return wm__heapRealloc(p, sz);
 }
 static void wm__heapFreeFn(void* ctx, void* p) { NOT_USED(ctx); if (p) wm__heapFree(p); }
-#endif
 
 static void zoneReporter(const memzone_t* zone, mz_report_t report, const void* ptr, const char* message, void* userData)
 {
@@ -169,10 +167,8 @@ static void freeInZone(memzone_t* zone, void* p, const char* file, int line)
 
 bool wm_allocInit(size_t globalSize, size_t frameSize, size_t audioSize)
 {
-#ifdef WAR_FRANK
     heapLimit = globalSize;
     globalSize = 4096; // unused: global allocations live on the heap
-#endif
     if (!initZone(globalSize, "global_zone.log", &globalZone))
     {
         logError("Failed to initialize globalZone.");
@@ -197,11 +193,7 @@ bool wm_allocInit(size_t globalSize, size_t frameSize, size_t audioSize)
         return false;
     }
 
-#ifdef WAR_FRANK
     globalAllocator = (shl_allocator_t){ NULL, wm__heapAllocFn, wm__heapReallocFn, wm__heapFreeFn };
-#else
-    globalAllocator = shl_zone_alloc(globalZone);
-#endif
     frameAllocator = shl_zone_alloc(frameZone);
     audioAllocator = shl_zone_alloc(audioZone);
 
@@ -223,8 +215,6 @@ void wm_allocFree(void)
     frameAllocator = (shl_allocator_t){0};
     audioAllocator = (shl_allocator_t){0};
 }
-
-#ifdef WAR_FRANK
 
 static void* wm__track(memzone_t* zone, size_t* peak, void* p, size_t sz, const char* file, int line)
 {
@@ -292,29 +282,15 @@ void* wm__alloc(size_t sz, const char* file, int line)
                  (unsigned)sz, file, line, (unsigned)(heapUsed >> 10), (unsigned)(heapLimit >> 10));
     return p;
 }
-#else
-void* wm__alloc(size_t sz, const char* file, int line)
-{
-    return allocInZone(globalZone, sz, file, line);
-}
-#endif
 
 void* wm__allocFrame(size_t sz, const char* file, int line)
 {
-#ifdef WAR_FRANK
     return wm__track(frameZone, &peakFrame, allocInZone(frameZone, sz, file, line), sz, file, line);
-#else
-    return allocInZone(frameZone, sz, file, line);
-#endif
 }
 
 void* wm__allocAudio(size_t sz, const char* file, int line)
 {
-#ifdef WAR_FRANK
     return wm__track(audioZone, &peakAudio, allocInZone(audioZone, sz, file, line), sz, file, line);
-#else
-    return allocInZone(audioZone, sz, file, line);
-#endif
 }
 
 void* wm__realloc(void* p, size_t sz, const char* file, int line)
@@ -326,7 +302,6 @@ void* wm__realloc(void* p, size_t sz, const char* file, int line)
         return NULL;
     }
 
-#ifdef WAR_FRANK
     if (wm__isHeap(p))
     {
         void* q = wm__heapRealloc(p, sz);
@@ -334,7 +309,6 @@ void* wm__realloc(void* p, size_t sz, const char* file, int line)
             logError("Out of memory: realloc to %u bytes at %s:%d", (unsigned)sz, file, line);
         return q;
     }
-#endif
 
     if (isInZone(globalZone, p))
     {
@@ -368,13 +342,11 @@ void wm__free(void* p, const char* file, int line)
 {
     if (!p) return;
 
-#ifdef WAR_FRANK
     if (!isInZone(frameZone, p) && !isInZone(audioZone, p) && wm__isHeap(p))
     {
         wm__heapFree(p);
         return;
     }
-#endif
 
     if (isInZone(globalZone, p))
     {
@@ -406,7 +378,3 @@ shl_allocator_t* wm_frameAllocator(void)
     return &frameAllocator;
 }
 
-shl_allocator_t* wm_audioAllocator(void)
-{
-    return &audioAllocator;
-}

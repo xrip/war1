@@ -37,39 +37,6 @@ void wui_clearUIText(WarContext* context, WarEntity* uiText)
     we_disableComponent(context, uiText, COMP_TEXT);
 }
 
-void wui_setUIText(WarContext* context, WarEntity* uiText, String text)
-{
-    wui_clearUIText(context, uiText);
-
-    if (text.data)
-    {
-        WarTextComponent* textComp = we_getTextComponent(context, uiText);
-        assert(textComp);
-
-        textComp->text = text;
-
-        we_enableComponent(context, uiText, COMP_TEXT);
-    }
-}
-
-void wui_setUIImage(WarContext* context, WarEntity* uiImage, s32 frameIndex)
-{
-    WarSpriteComponent* sprite = we_getSpriteComponent(context, uiImage);
-    assert(sprite);
-
-    sprite->frameIndex = frameIndex;
-    we_setComponentEnabled(context, uiImage, COMP_SPRITE, frameIndex >= 0);
-}
-
-void wui_setUIRectWidth(WarContext* context, WarEntity* uiRect, s32 width)
-{
-    WarRectComponent* rect = we_getRectComponent(context, uiRect);
-    assert(rect);
-
-    rect->size.x = (f32)width;
-    we_setComponentEnabled(context, uiRect, COMP_RECT, width > 0);
-}
-
 void wui_clearUITooltip(WarContext* context, WarEntity* uiButton)
 {
     WarButtonComponent* button = we_getButtonComponent(context, uiButton);
@@ -79,116 +46,13 @@ void wui_clearUITooltip(WarContext* context, WarEntity* uiButton)
     button->tooltip = wstr_make();
 }
 
-void wui_setUITooltip(WarContext* context, WarEntity* uiButton, s32 highlightIndex, s32 highlightCount, String text)
-{
-    wui_clearUITooltip(context, uiButton);
-
-    if (text.data)
-    {
-        WarButtonComponent* button = we_getButtonComponent(context, uiButton);
-        assert(button);
-
-        button->highlightIndex = highlightIndex;
-        button->highlightCount = highlightCount;
-        button->tooltip = text;
-    }
-}
-
-void wui_setUITextHighlight(WarContext* context, WarEntity* uiButton, s32 highlightIndex, s32 highlightCount)
-{
-    WarTextComponent* textComp = we_getTextComponent(context, uiButton);
-    assert(textComp);
-
-    textComp->highlightIndex = highlightIndex;
-    textComp->highlightCount = highlightCount;
-}
-
-void setUIEntityStatus(WarContext* context, WarEntity* uiEntity, bool value)
-{
-    we_setComponentEnabled(context, uiEntity, COMP_UI, value);
-}
-
-void setUIButtonStatus(WarContext* context, WarEntity* uiEntity, bool value)
-{
-    we_setComponentEnabled(context, uiEntity, COMP_BUTTON, value);
-}
-
-void setUIButtonInteractive(WarContext* context, WarEntity* uiEntity, bool value)
-{
-    WarButtonComponent* button = we_getButtonComponent(context, uiEntity);
-    assert(button);
-
-    button->interactive = value;
-}
-
-void setUIButtonHotKey(WarContext* context, WarEntity* uiEntity, WarKeys key)
-{
-    WarButtonComponent* button = we_getButtonComponent(context, uiEntity);
-    assert(button);
-
-    button->hotKey = key;
-}
-
-void setUIButtonClickHandler(WarContext* context, WarEntity* uiEntity, void (*handler)(WarContext*, WarEntity*))
-{
-    WarButtonComponent* button = we_getButtonComponent(context, uiEntity);
-    assert(button);
-
-    button->clickHandler = handler;
-}
-
-void wui_setUIButtonStatusByName(WarContext* context, StringView name, bool enabled)
-{
-    WarEntity* entity = we_findUIEntity(context, name);
-    if (entity)
-    {
-        setUIButtonStatus(context, entity, enabled);
-    }
-}
-
-void wui_setUIButtonInteractiveByName(WarContext* context, StringView name, bool interactive)
-{
-    WarEntity* entity = we_findUIEntity(context, name);
-    if (entity)
-    {
-        setUIButtonInteractive(context, entity, interactive);
-    }
-}
-
-void wui_setUIButtonHotKeyByName(WarContext* context, StringView name, WarKeys key)
-{
-    WarEntity* entity = we_findUIEntity(context, name);
-    if (entity)
-    {
-        setUIButtonHotKey(context, entity, key);
-    }
-}
-
-void wui_setUIEntityStatusByName(WarContext* context, StringView name, bool enabled)
-{
-    WarEntity* entity = we_findUIEntity(context, name);
-    if (entity)
-    {
-        setUIEntityStatus(context, entity, enabled);
-    }
-}
-
 void wui_changeCursorType(WarContext* context, WarCursorType type)
 {
     context->imui.cursor_type = type;
 }
 
-void wui_updateUICursor(WarContext* context)
-{
-    NOT_USED(context);
-    // Cursor is now fully managed by imui: wui_changeCursorType sets the type
-    // each frame, and imui_end() renders the sprite at the mouse position.
-}
-
 void wui_updateUIButtons(WarContext* context, bool hotKeysEnabled)
 {
-    TracyCZoneN(ctx, "UpdateUIButtons", 1);
-
     WarInput* input = &context->input;
     WarEntityList* buttons = we_getEntitiesOfType(context, WAR_ENTITY_TYPE_BUTTON);
     WarEntity* hoveredButton = NULL;
@@ -297,14 +161,10 @@ void wui_updateUIButtons(WarContext* context, bool hotKeysEnabled)
     }
 
     WarEntityIdSetFree(&buttonsToUpdate);
-
-    TracyCZoneEnd(ctx);
 }
 
 void wui_renderUIEntities(WarContext* context)
 {
-    TracyCZoneN(ctx, "RenderUIEntities", 1);
-
     WarEntityList* entities = we_getUIEntities(context);
     for(s32 i = 0; i < entities->count; i++)
     {
@@ -315,6 +175,4 @@ void wui_renderUIEntities(WarContext* context)
             we_renderEntity(context, entity);
         }
     }
-
-    TracyCZoneEnd(ctx);
 }

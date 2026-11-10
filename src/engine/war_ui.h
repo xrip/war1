@@ -10,27 +10,13 @@
 bool wui_isUIEntity(WarEntity* entity);
 
 void wui_clearUIText(WarContext* context, WarEntity* uiText);
-void wui_setUIText(WarContext* context, WarEntity* uiText, String text);
 
-void wui_setUIImage(WarContext* context, WarEntity* uiImage, s32 frameIndex);
-void wui_setUIRectWidth(WarContext* context, WarEntity* uiRect, s32 width);
 
 void wui_clearUITooltip(WarContext* context, WarEntity* uiButton);
-void wui_setUITooltip(WarContext* context, WarEntity* uiButton, s32 highlightIndex, s32 highlightCount, String text);
 
-void wui_setUITextHighlight(WarContext* context, WarEntity* uiButton, s32 highlightIndex, s32 highlightCount);
 
-void setUIEntityStatus(WarContext* ctx, WarEntity* uiEntity, bool value);
 
-void setUIButtonStatus(WarContext* ctx, WarEntity* uiEntity, bool value);
-void setUIButtonInteractive(WarContext* ctx, WarEntity* uiEntity, bool value);
-void setUIButtonHotKey(WarContext* ctx, WarEntity* uiEntity, WarKeys key);
-void setUIButtonClickHandler(WarContext* ctx, WarEntity* uiEntity, void (*handler)(WarContext*, WarEntity*));
 
-void wui_setUIButtonStatusByName(WarContext* context, StringView name, bool enabled);
-void wui_setUIButtonInteractiveByName(WarContext* context, StringView name, bool interactive);
-void wui_setUIButtonHotKeyByName(WarContext* context, StringView name, WarKeys key);
-void wui_setUIEntityStatusByName(WarContext* context, StringView name, bool enabled);
 
 typedef struct
 {
@@ -193,7 +179,6 @@ typedef struct
 #define CREATE_UI_IMAGE_BUTTON_ARGS_INIT(...) (&(CreateUIImageButtonArgs)CREATE_UI_IMAGE_BUTTON_ARGS_INIT_CONST(__VA_ARGS__))
 
 void wui_changeCursorType(WarContext* context, WarCursorType type);
-void wui_updateUICursor(WarContext* context);
 void wui_updateUIButtons(WarContext* context, bool hotKeysEnabled);
 
 void wui_renderUIEntities(WarContext* context);

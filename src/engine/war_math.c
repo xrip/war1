@@ -17,44 +17,14 @@ vec2 vec2_addv(vec2 a, vec2 b)
     return (vec2){a.x + b.x, a.y + b.y};
 }
 
-vec2 vec2_addi(vec2 v, s32 x)
-{
-    return (vec2){v.x + x, v.y + x};
-}
-
-vec2 vec2_addf(vec2 v, f32 x)
-{
-    return (vec2){v.x + x, v.y + x};
-}
-
 vec2 vec2_subv(vec2 a, vec2 b)
 {
     return (vec2){a.x - b.x, a.y - b.y};
 }
 
-vec2 vec2_subi(vec2 v, s32 x)
-{
-    return (vec2){v.x - x, v.y - x};
-}
-
-vec2 vec2_subf(vec2 v, f32 x)
-{
-    return (vec2){v.x - x, v.y - x};
-}
-
 vec2 vec2_mulf(vec2 v, f32 a)
 {
     return (vec2){v.x * a, v.y * a};
-}
-
-vec2 vec2_muli(vec2 v, s32 a)
-{
-    return (vec2){v.x * (f32)a, v.y * (f32)a};
-}
-
-vec2 vec2_mulv(vec2 a, vec2 b)
-{
-    return (vec2){a.x * b.x, a.y * b.y};
 }
 
 vec2 vec2_half(vec2 a)
@@ -67,29 +37,9 @@ vec2 vec2_translatef(vec2 v, f32 x, f32 y)
     return (vec2){v.x + x, v.y + y};
 }
 
-vec2 vec2_translatei(vec2 v, s32 x, s32 y)
-{
-    return (vec2){v.x + (f32)x, v.y + (f32)y};
-}
-
 vec2 vec2_scalef(vec2 v, f32 scale)
 {
     return (vec2){v.x * scale, v.y * scale};
-}
-
-vec2 vec2_scalei(vec2 v, s32 scale)
-{
-    return (vec2){v.x * (f32)scale, v.y * (f32)scale};
-}
-
-vec2 vec2_scalev(vec2 v, vec2 scale)
-{
-    return (vec2){v.x * scale.x, v.y * scale.y};
-}
-
-vec2 vec2_inverse(vec2 v)
-{
-    return (vec2){-v.x, -v.y};
 }
 
 f32 vec2_lengthSqr(vec2 v)
@@ -133,26 +83,9 @@ f32 vec2_dot(vec2 v1, vec2 v2)
     return v1.x * v2.x + v1.y * v2.y;
 }
 
-f32 vec2_determinant(vec2 v1, vec2 v2)
-{
-    return v1.x * v2.x - v1.y * v2.y;
-}
-
 s32 vec2_orientation(vec2 v1, vec2 v2)
 {
     return v1.x * v2.y - v1.y * v2.x >= 0 ? 1 : -1;
-}
-
-f32 vec2_angle(vec2 v1, vec2 v2)
-{
-    f32 v1Length = vec2_length(v1);
-    f32 v2Length = vec2_length(v2);
-    if (v1Length == 0 || v2Length == 0)
-        return 0;
-
-    f32 dot = vec2_dot(v1, v2);
-    f32 angleRad = acosf(dot / (v1Length * v2Length));
-    return RAD2DEG(angleRad);
 }
 
 f32 vec2_angleClockwise(vec2 v1, vec2 v2)
@@ -175,39 +108,9 @@ f32 vec2_angleClockwise(vec2 v1, vec2 v2)
     return RAD2DEG(angleRad);
 }
 
-vec2 vec2_clampf(vec2 v, f32 a, f32 b)
-{
-    return (vec2){CLAMP(v.x, a, b), CLAMP(v.y, a, b)};
-}
-
-vec2 vec2_clampi(vec2 v, s32 a, s32 b)
-{
-    return (vec2){CLAMP(v.x, (f32)a, (f32)b), CLAMP(v.y, (f32)a, (f32)b)};
-}
-
 vec2 vec2_clampv(vec2 v, vec2 a, vec2 b)
 {
     return (vec2){CLAMP(v.x, a.x, b.x), CLAMP(v.y, a.y, b.y)};
-}
-
-vec2 vec2_floor(vec2 v)
-{
-    return (vec2){floorf(v.x), floorf(v.y)};
-}
-
-vec2 vec2_ceil(vec2 v)
-{
-    return (vec2){ceilf(v.x), ceilf(v.y)};
-}
-
-vec2 vec2_round(vec2 v)
-{
-    return (vec2){roundf(v.x), roundf(v.y)};
-}
-
-void vec2_print(vec2 v)
-{
-    logDebug("(%f, %f)", v.x, v.y);
 }
 
 rect rectf(f32 x, f32 y, f32 width, f32 height)
@@ -230,11 +133,6 @@ rect rectv(vec2 pos, vec2 size)
     return (rect){pos.x, pos.y, size.x, size.y};
 }
 
-rect rects(vec2 size)
-{
-    return (rect){0.0f, 0.0f, size.x, size.y};
-}
-
 bool rect_containsf(rect r, f32 x, f32 y)
 {
     return x >= r.x && x <= r.x + r.width &&
@@ -245,15 +143,6 @@ bool rect_intersects(rect r1, rect r2)
 {
     return !(r1.x + r1.width < r2.x || r1.x > r2.x + r2.width ||
              r1.y + r1.height < r2.y || r1.y > r2.y + r2.height);
-}
-
-rect rect_scalef(rect r, f32 scale)
-{
-    r.x *= scale;
-    r.y *= scale;
-    r.width *= scale;
-    r.height *= scale;
-    return r;
 }
 
 rect rect_translatef(rect r, f32 x, f32 y)
@@ -320,7 +209,3 @@ vec2 rect_closestPointOnRect(rect r, vec2 p)
     return p;
 }
 
-void rect_print(rect r)
-{
-    logDebug("(%f, %f, %f, %f)", r.x, r.y, r.width, r.height);
-}

@@ -169,7 +169,6 @@ struct _WarUnitStats
 // build time in seconds
 
 extern const WarUnitStats unitStats[];
-#ifdef WAR_FRANK
 // frank: training time as the original 1.20 has it at normal speed: the
 // unit's step count (buildTime here is war1's seconds, steps * 0.8) at one
 // step per 18 game ticks, plus the first 9-tick wait, 30 ms a tick
@@ -179,7 +178,6 @@ f32 wu_unitTrainSeconds(const WarUnitStats* stats);
 // monsters from 20 on were one off (a level's spiders came out as slimes)
 WarUnitType wu_fromOriginalType(s32 original);
 s32 wu_toOriginalType(WarUnitType type);
-#endif
 
 struct _WarBuildingStats
 {
@@ -293,22 +291,16 @@ const WarUnitCommandBaseData* wu_getCommandBaseData(WarUnitCommandType type);
 const WarUnitCommandMapping* wu_getCommandMapping(WarUnitCommandType type);
 const WarUnitCommandMapping* wu_getCommandMappingFromUnitType(WarUnitType unitType);
 const WarUnitCommandMapping* wu_getCommandMappingFromUpgradeType(WarUpgradeType upgradeType);
-const WarUnitCommandMapping* wu_getCommandMappingFromSpellType(WarSpellType spellType);
 
 bool wu_isUnit(const WarEntity* entity);
 bool wu_isUnitOfType(WarContext* ctx, const WarEntity* entity, WarUnitType unitType);
-bool wu_isRoad(const WarEntity* entity);
 bool wu_isWall(const WarEntity* entity);
-bool wu_isRuin(const WarEntity* entity);
 
 bool wu_isDudeUnitType(WarUnitType type);
 bool wu_isBuildingUnitType(WarUnitType type);
 bool wu_isWorkerUnitType(WarUnitType type);
 bool wu_isWarriorUnitType(WarUnitType type);
 bool wu_isRangeUnitType(WarUnitType type);
-bool wu_isMeleeUnitType(WarUnitType type);
-bool wu_isFistUnitType(WarUnitType type);
-bool wu_isSwordUnitType(WarUnitType type);
 bool wu_isMagicUnitType(WarUnitType type);
 bool wu_isCorpseUnitType(WarUnitType type);
 bool wu_isCatapultUnitType(WarUnitType type);
@@ -322,9 +314,6 @@ bool wu_isBuildingUnit(WarContext* context, WarEntity* entity);
 bool wu_isWorkerUnit(WarContext* context, WarEntity* entity);
 bool wu_isWarriorUnit(WarContext* context, WarEntity* entity);
 bool wu_isRangeUnit(WarContext* context, WarEntity* entity);
-bool wu_isMeleeUnit(WarContext* context, WarEntity* entity);
-bool wu_isFistUnit(WarContext* context, WarEntity* entity);
-bool wu_isSwordUnit(WarContext* context, WarEntity* entity);
 bool wu_isMagicUnit(WarContext* context, WarEntity* entity);
 bool wu_isCorpseUnit(WarContext* context, WarEntity* entity);
 bool wu_isCatapultUnit(WarContext* context, WarEntity* entity);
@@ -337,8 +326,6 @@ WarRace wu_getUnitTypeRace(WarUnitType type);
 WarRace wu_getUnitRace(WarContext* context, WarEntity* entity);
 
 bool wu_isHumanUnit(WarContext* context, WarEntity* entity);
-bool wu_isOrcUnit(WarContext* context, WarEntity* entity);
-bool wu_isNeutralUnit(WarContext* context, WarEntity* entity);
 
 WarUnitType wu_getUnitTypeForRace(WarUnitType type, WarRace race);
 
@@ -350,7 +337,6 @@ bool wu_areEnemies(WarContext* context, WarEntity* entity, WarEntity* other);
 bool wu_canAttack(WarContext* context, WarEntity* entity, WarEntity* targetEntity);
 
 WarUnitType wu_getTownHallOfRace(WarRace race);
-WarUnitType wu_getProducerUnitOfType(WarUnitType type);
 
 // Entity geometry / property functions (bodies defined in war_entities.h)
 vec2 wu_getUnitSize(WarContext* context, WarEntity* entity);
@@ -375,7 +361,6 @@ WarDirection wu_getDirectionFromDiff(f32 x, f32 y);
 
 void wu_setUnitDirection(WarContext* context, WarEntity* entity, WarDirection direction);
 void wu_setUnitDirectionFromDiff(WarContext* context, WarEntity* entity, f32 dx, f32 dy);
-f32 wu_getUnitActionScale(WarContext* context, WarEntity* entity);
 vec2 wu_unitTileOnTarget(WarContext* context, WarEntity* entity, WarEntity* targetEntity);
 vec2 wu_unitPointOnTarget(WarContext* context, WarEntity* entity, WarEntity* targetEntity);
 s32 wu_entityTileDistance(WarContext* context, WarEntity* entity, vec2 targetTile);
@@ -391,15 +376,11 @@ bool wu_displayUnitOnMinimap(WarContext* context, WarEntity* entity);
 WarColor wu_getUnitColorOnMinimap(WarContext* context, WarEntity* entity);
 
 s32 wu_getTotalNumberOfDudes(WarContext* context, u8 player);
-s32 wu_getTotalNumberOfBuildings(WarContext* context, u8 player, bool alreadyBuilt);
 s32 wu_getNumberOfBuildingsOfType(WarContext* context, u8 player, WarUnitType unitType, bool alreadyBuilt);
-s32 wu_getNumberOfUnitsOfType(WarContext* context, u8 player, WarUnitType unitType);
 s32 wu_getTotalNumberOfUnits(WarContext* context, u8 player);
 
-bool wu_playerHasUnit(WarContext* context, u8 player, WarUnitType unitType);
 bool wu_playerHasBuilding(WarContext* context, u8 player, WarUnitType unitType);
 
-bool wu_isValidUnitType(WarUnitType type);
 
 void wu_getUnitCommands(WarContext* context, WarEntity* entity, WarUnitCommandType commands[]);
 WarUnitCommandData wu_getUnitCommandData(WarContext* context, WarEntity* entity, WarUnitCommandType commandType);

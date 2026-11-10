@@ -24,13 +24,9 @@
 #define RAIN_OF_FIRE_PROJECTILE_DAMAGE 10
 #define POISON_CLOUD_DAMAGE 10
 
-#ifdef WAR_FRANK
 // frank: the game's sounds are all 8-bit ~11 kHz; mix them at that rate (no
 // 4x resampled copies) and let the platform upsample on output
 #define PLAYBACK_FREQ 11025
-#else
-#define PLAYBACK_FREQ 44100
-#endif
 
 #define FOG_OF_WAR_UPDATE_TIME 1.0f
 
@@ -40,13 +36,9 @@
 // Counts
 #define MAX_RESOURCES_COUNT 586
 #define MAX_TEXTURES_COUNT 583
-#ifdef WAR_FRANK
 // frank: every map and scene embeds all component stores at this size; the
 // biggest campaign maps start with ~110 entities
 #define MAX_ENTITIES_COUNT 512
-#else
-#define MAX_ENTITIES_COUNT 1024
-#endif
 #define MAX_SELECTED_ENTITIES_COUNT 32
 #define MAX_SELECTION_GROUPS 9
 #define MAX_COMPONENTS_COUNT 30
@@ -331,16 +323,12 @@ struct _WarContext
 };
 
 void wg_setGlobalScale(WarContext* context, f32 scale);
-void wg_changeGlobalScale(WarContext* context, f32 deltaScale);
 
 void wg_setGlobalSpeed(WarContext* context, f32 speed);
-void wg_changeGlobalSpeed(WarContext* context, f32 deltaSpeed);
 
 void wg_setMusicVolume(WarContext* context, f32 volume);
-void wg_changeMusicVolume(WarContext* context, f32 deltaVolume);
 
 void wg_setSoundVolume(WarContext* context, f32 volume);
-void wg_changeSoundVolume(WarContext* context, f32 deltaVolume);
 
 void wg_setNextScene(WarContext* context, WarScene* scene, f32 transitionDelay);
 void wg_setNextMap(WarContext* context, WarMap* map, f32 transitionDelay);

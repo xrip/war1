@@ -5,40 +5,29 @@
 #include "war_units.h"
 #include "war_map.h"
 
-#include "TracyC.h"
-
 WarStateChopping* wst_createChoppingState(WarContext* context, WarEntity* entity, WarEntityId forestId, vec2 position)
 {
-    TracyCZoneN(ctx, "wst_createChoppingState", true);
-
     WarStateRef ref = wst_allocState(context, WAR_STATE_CHOPPING, entity->id);
     if (!WAR_STATE_REF_IS_VALID(ref))
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     WarStateChopping* state = (WarStateChopping*)wst_deref(context, ref);
     if (!state)
     {
-        TracyCZoneEnd(ctx);
         return NULL;
     }
 
     state->forestId = forestId;
     state->position = position;
-#ifdef WAR_FRANK
     state->frankChops = 0;
-#endif
 
-    TracyCZoneEnd(ctx);
     return state;
 }
 
 void wst_enterChoppingState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_enterChoppingState", true);
-
     WarMap* map = context->map;
     assert(map);
 
@@ -52,20 +41,14 @@ void wst_enterChoppingState(WarContext* context, WarEntity* entity, WarState* st
     wpath_setStaticEntity(&map->finder, (s32)unitTile.x, (s32)unitTile.y, (s32)unitSize.x, (s32)unitSize.y, entity->id);
     wu_setUnitDirectionFromDiff(context, entity, treeTile.x - unitTile.x, treeTile.y - unitTile.y);
     wact_setAction(context, entity, WAR_ACTION_TYPE_HARVEST, true, 1.0f);
-
-    TracyCZoneEnd(ctx);
 }
 
 void wst_updateChoppingState(WarContext* context, WarEntity* entity, WarState* state)
 {
-    TracyCZoneN(ctx, "wst_updateChoppingState", true);
-#ifdef WAR_FRANK
     if (wai_drivesTicks(context))
     {
-        TracyCZoneEnd(ctx);
         return;
     }
-#endif
 
     WarStateChopping* s = (WarStateChopping*)state;
 
@@ -79,7 +62,6 @@ void wst_updateChoppingState(WarContext* context, WarEntity* entity, WarState* s
     {
         WarStateIdle* idleState = wst_createIdleState(context, entity, true);
         wst_replaceState(context, entity, (WarStateBase*)idleState, WAR_TRANSITION_CAUSE_COMPLETION);
-        TracyCZoneEnd(ctx);
         return;
     }
 
@@ -91,15 +73,12 @@ void wst_updateChoppingState(WarContext* context, WarEntity* entity, WarState* s
     {
         WarStateWood* gatherWoodState = wst_createGatherWoodState(context, entity, forest->id, treePosition);
         wst_replaceState(context, entity, (WarStateBase*)gatherWoodState, WAR_TRANSITION_CAUSE_COMPLETION);
-        TracyCZoneEnd(ctx);
         return;
     }
 
     WarUnitAction* action = &unit->actions[unit->actionType];
-#ifdef WAR_FRANK
     // frank: the AI's tick counts the strokes (wst_frankChopTick)
     if (wai_drivesTicks(context)) action->lastActionStep = WAR_ACTION_STEP_NONE;
-#endif
     if (action->lastActionStep == WAR_ACTION_STEP_ATTACK)
     {
         unit->amount += we_chopTree(context, forest, tree, 2);
@@ -127,20 +106,13 @@ void wst_updateChoppingState(WarContext* context, WarEntity* entity, WarState* s
             we_addSpriteComponentFromResource(context, entity, imageResourceRef(workerData->carryingWoodResource));
 
             // find the closest town hall to deliver the gold
-            WarRace race = wu_getUnitRace(context, entity);
-            WarUnitType townHallType = wu_getTownHallOfRace(race);
-#ifdef WAR_FRANK
             WarEntity* townHall = wai_homeHall(context, entity);
-#else
-            WarEntity* townHall = we_findClosestUnitOfType(context, entity, townHallType);
-#endif
 
             // if the town hall doesn't exists (it could be under attack and get destroyed), go idle
             if (!townHall)
             {
                 WarStateIdle* idleState = wst_createIdleState(context, entity, true);
                 wst_replaceState(context, entity, (WarStateBase*)idleState, WAR_TRANSITION_CAUSE_COMPLETION);
-                TracyCZoneEnd(ctx);
                 return;
             }
 
@@ -156,15 +128,11 @@ void wst_updateChoppingState(WarContext* context, WarEntity* entity, WarState* s
         action->lastActionStep = WAR_ACTION_STEP_NONE;
         action->lastSoundStep =  WAR_ACTION_STEP_NONE;
     }
-
-    TracyCZoneEnd(ctx);
 }
 
 
 void wst_updateChoppingStates(WarContext* context)
 {
-    TracyCZoneN(ctx, "wst_updateChoppingStates", true);
-
     WarEntityManager* manager = we_getEntityManager(context);
     WarStateStorage*  storage = &manager->stateStorage;
     WarStateChopping*      states  = storage->chopping;
@@ -183,11 +151,8 @@ void wst_updateChoppingStates(WarContext* context)
 
         wst_updateChoppingState(context, entity, (WarStateBase*)state);
     }
-
-    TracyCZoneEnd(ctx);
 }
 
-#ifdef WAR_FRANK
 // frank: the original's harvest order (0x1CD50) at each checkpoint of the
 // worker's work script: 50 strokes counted, and at the next checkpoint the
 // tree is down and the load (100) goes home.
@@ -231,9 +196,7 @@ void wst_frankChopCheckpoint(WarContext* context, WarEntity* entity, WarStateBas
     }
     if (s->frankChops < 50) { s->frankChops++; return; }
     // done: the tree is down, the wood goes home
-#ifndef FRANK_BOARD
     if (getenv("WAR_TURNDEBUG")) fprintf(stderr, "chopped by %d tree %d,%d amount %d\n", (s32)entity->id, (s32)treeTile.x, (s32)treeTile.y, tree ? tree->amount : -1);
-#endif
     if (forest && tree) we_chopTree(context, forest, tree, TREE_MAX_WOOD);
     // (0x1CD50: carrying, and the tree kept to come back to)
     unit->frankWorkX = (s16)treeTile.x;
@@ -247,9 +210,7 @@ void wst_frankChopCheckpoint(WarContext* context, WarEntity* entity, WarStateBas
     we_removeSpriteComponent(context, entity);
     we_addSpriteComponentFromResource(context, entity, imageResourceRef(workerData->carryingWoodResource));
     WarEntity* townHall = wai_homeHall(context, entity);
-#ifndef FRANK_BOARD
     if (getenv("WAR_TURNDEBUG")) fprintf(stderr, "deliver %d to %d\n", (s32)entity->id, townHall ? (s32)townHall->id : -1);
-#endif
     if (!townHall)
     {
         wst_replaceState(context, entity, (WarStateBase*)wst_createIdleState(context, entity, true), WAR_TRANSITION_CAUSE_COMPLETION);
@@ -263,4 +224,3 @@ void wst_frankChopCheckpoint(WarContext* context, WarEntity* entity, WarStateBas
     wst_replaceState(context, entity, (WarStateBase*)deliverState, WAR_TRANSITION_CAUSE_COMPLETION);
     wmv_settle(context, entity);
 }
-#endif

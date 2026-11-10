@@ -82,6 +82,5 @@ void wcheatp_setCheatsPanelVisible(WarContext* context, bool visible);
 void wcheatp_setCheatsFeedback(WarContext* context, String feedbackText);
 void wcheatp_setDebugText(WarContext* context, StringView text);
 void wcheatp_createCheatsPanel(WarContext* context);
-void wcheatp_setCheatText(WarContext* context, String text);
 void wcheatp_updateCheatsPanel(WarContext* context);
 void wcheatp_renderCheatsPanel(WarContext* context);

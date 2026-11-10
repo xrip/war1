@@ -26,7 +26,6 @@ void  wm__free(void* p, const char* file, int line);
 
 shl_allocator_t* wm_globalAllocator(void);
 shl_allocator_t* wm_frameAllocator(void);
-shl_allocator_t* wm_audioAllocator(void);
 
 #define wm_alloc(sz)          wm__alloc((sz), __FILE__, __LINE__)
 #define wm_allocFrame(sz)     wm__allocFrame((sz), __FILE__, __LINE__)
@@ -35,8 +34,6 @@ shl_allocator_t* wm_audioAllocator(void);
 #define wm_reallocAudio(p, sz) wm__reallocAudio((p), (sz), __FILE__, __LINE__)
 #define wm_free(p)            wm__free((p), __FILE__, __LINE__)
 
-#ifdef WAR_FRANK
 // Move a global-zone block into a smaller one (mz_realloc never shrinks).
 void* wm__shrink(void* p, size_t sz, const char* file, int line);
 #define wm_shrink(p, sz)      wm__shrink((p), (sz), __FILE__, __LINE__)
-#endif

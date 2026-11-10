@@ -52,7 +52,6 @@ static const char* debugRenderFlagNames[WAR_DEBUG_RENDER_COUNT] =
     "font",
     "projectiles",
     "flow-field",
-    "rvo",
     "state-machine",
 };
 
@@ -68,7 +67,6 @@ static const char* debugRenderFlagShortcuts[WAR_DEBUG_RENDER_COUNT] =
     "Ctrl+Shift+F",
     "Ctrl+Shift+J",
     "Ctrl+Shift+W",
-    "Ctrl+Shift+R",
     "Ctrl+Shift+T",
 };
 

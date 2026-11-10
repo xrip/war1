@@ -40,11 +40,9 @@ struct _WarFile
 
     WarFileType type;
     WarRawResource resources[MAX_RESOURCES_COUNT];
-#ifdef WAR_FRANK
     // frank: entries are read from the file when first used
     void* stream;
     u32 fileLength;
-#endif
 };
 
 struct _WarLevelUnit
@@ -84,7 +82,6 @@ struct _WarCustomMapConfiguration
     WarLevelUnit* startEntities;
 };
 
-#ifdef WAR_FRANK
 // frank: the original computer player's parameters, from the level header
 // (docs/ai.md "Everything tunable is in the level header")
 #define WAR_AI_ROUTE_WORDS_MAX 400
@@ -102,7 +99,6 @@ typedef struct _WarLevelAI
     s32 routeWordsCount;        // the route table (after the message records at 0xDC)
     u16 routeWords[WAR_AI_ROUTE_WORDS_MAX];
 } WarLevelAI;
-#endif
 
 struct _WarResource
 {
@@ -120,9 +116,7 @@ struct _WarResource
             u16 width;
             u16 height;
             u8* pixels;
-#ifdef WAR_FRANK
             const u16* lut; // 8-bit pixels, RGB565 palette
-#endif
         } imageData;
 
         struct
@@ -131,9 +125,7 @@ struct _WarResource
             u8 frameWidth;
             u8 frameHeight;
             WarSpriteFrame* frames;
-#ifdef WAR_FRANK
             const u16* lut; // cropped 8-bit frames, RGB565 palette
-#endif
         } spriteData;
 
         struct
@@ -172,9 +164,7 @@ struct _WarResource
 
             u32 startConfigurationsCount;
             WarCustomMapConfiguration startConfigurations[MAX_CUSTOM_MAP_CONFIGURATIONS_COUNT];
-#ifdef WAR_FRANK
             WarLevelAI* ai;
-#endif
         } levelInfo;
 
         struct
@@ -191,9 +181,7 @@ struct _WarResource
         {
             u32 tilesCount;
             u8* data;
-#ifdef WAR_FRANK
             const u16* lut;
-#endif
         } tilesetData;
 
         struct
@@ -221,9 +209,7 @@ struct _WarResource
             u16 width;
             u16 height;
             u8* pixels;
-#ifdef WAR_FRANK
             const u16* lut;
-#endif
         } cursor;
     };
 };
@@ -232,7 +218,5 @@ WarResource* wres_getOrCreateResource(WarContext* context, s32 index);
 bool wres_tryGetPredefinedCustomMapIndex(StringView name, s32* index);
 void wres_loadResource(WarContext* context, DatabaseEntry* entry);
 
-#ifdef WAR_FRANK
 bool wres_isLazyResource(s32 index);
 void wres_unloadLazyResources(WarContext* context);
-#endif

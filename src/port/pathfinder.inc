@@ -130,98 +130,6 @@ static void wpath_searchReset(void)
     wpath_heapCount = 0;
 }
 
-void wpath_astar(WarPathFinder* finder, s32 startX, s32 startY, s32 endX, s32 endY, WarMapPath* path)
-{
-    assert(finder);
-    assert(inRange(startX, 0, MAP_TILES_WIDTH));
-    assert(inRange(startY, 0, MAP_TILES_HEIGHT));
-    assert(inRange(endX, 0, MAP_TILES_WIDTH));
-    assert(inRange(endY, 0, MAP_TILES_HEIGHT));
-    assert(path);
-
-    wpath_searchReset();
-
-    const s32 start = startY * MAP_TILES_WIDTH + startX;
-    const s32 end = endY * MAP_TILES_WIDTH + endX;
-    s32 closedCount = 0;
-
-    wpath_setG(start, 0);
-    wpath_heapPushOrDecrease(start, ABS(startX - endX) + ABS(startY - endY));
-
-    while (wpath_heapCount > 0)
-    {
-        s32 current = wpath_heapPop();
-        wpath_setClosed(current);
-        closedCount++;
-
-        if (current == end)
-            break;
-
-        s32 cx = current % MAP_TILES_WIDTH, cy = current / MAP_TILES_WIDTH;
-        for (s32 d = 0; d < wpath_dirC; d++)
-        {
-            s32 xx = cx + wpath_dirX[d];
-            s32 yy = cy + wpath_dirY[d];
-            if (!wpath_isInside(xx, yy) || wpath_isStatic(finder, xx, yy))
-                continue;
-
-            s32 n = yy * MAP_TILES_WIDTH + xx;
-            if (wpath_isClosed(n))
-                continue;
-
-            s32 g = wpath_getG(current) + 1;
-            if (g >= wpath_getG(n))
-                continue;
-
-            wpath_setG(n, g);
-            wpath_setParent(n, current);
-            wpath_heapPushOrDecrease(n, g + ABS(xx - endX) + ABS(yy - endY));
-        }
-    }
-
-    // only process the path if has at least two points
-    if (closedCount > 1)
-    {
-        s32 node = end;
-
-        // unreachable: go to the closest evaluated node instead
-        if (!wpath_isClosed(end))
-        {
-            s32 minDistanceToEnd = INT32_MAX;
-            s32 minDistanceFromStart = INT32_MAX;
-            for (s32 k = 0; k < WPATH_N; k++)
-            {
-                if (!wpath_isClosed(k))
-                    continue;
-                s32 kx = k % MAP_TILES_WIDTH, ky = k / MAP_TILES_WIDTH;
-                s32 toEnd = (kx - endX) * (kx - endX) + (ky - endY) * (ky - endY);
-                s32 fromStart = (kx - startX) * (kx - startX) + (ky - startY) * (ky - startY);
-                if (toEnd < minDistanceToEnd || (toEnd == minDistanceToEnd && fromStart < minDistanceFromStart))
-                {
-                    node = k;
-                    minDistanceToEnd = toEnd;
-                    minDistanceFromStart = fromStart;
-                }
-            }
-        }
-
-        path->count = 0;
-        while (wpath_getParent(node) >= 0)
-        {
-            path->nodes[path->count++] = vec2i(node % MAP_TILES_WIDTH, node / MAP_TILES_WIDTH);
-            node = wpath_getParent(node);
-        }
-        path->nodes[path->count++] = vec2i(startX, startY);
-
-        for (s32 i = 0, j = path->count - 1; i < j; i++, j--)
-        {
-            vec2 temp = path->nodes[i];
-            path->nodes[i] = path->nodes[j];
-            path->nodes[j] = temp;
-        }
-    }
-}
-
 void wpath_flowField(WarPathFinder* finder, s32 x, s32 y, WarMapFlowField* flowField)
 {
     assert(finder);
@@ -376,29 +284,6 @@ WarMapFlowField* wpath_computeFlowField(WarPathFinder* finder, s32 x, s32 y)
 #endif
 
     return wpath_touch(flowField);
-}
-
-WarMapFlowField* wpath_getFlowField(WarPathFinder* finder, s32 x, s32 y)
-{
-    // a goal just off the map (a unit pushed past the edge): the edge tile
-    x = CLAMP(x, 0, MAP_TILES_WIDTH - 1);
-    y = CLAMP(y, 0, MAP_TILES_HEIGHT - 1);
-
-    WarMapFlowField* field = finder->fields[y * MAP_TILES_WIDTH + x];
-    return field ? wpath_touch(field) : NULL;
-}
-
-WarMapFlowField* wpath_ensureFlowField(WarPathFinder* finder, s32 x, s32 y)
-{
-    // a goal just off the map (a unit pushed past the edge): the edge tile
-    x = CLAMP(x, 0, MAP_TILES_WIDTH - 1);
-    y = CLAMP(y, 0, MAP_TILES_HEIGHT - 1);
-
-    WarMapFlowField* field = finder->fields[y * MAP_TILES_WIDTH + x];
-    if (!field)
-        return wpath_computeFlowField(finder, x, y);
-
-    return wpath_touch(field);
 }
 
 vec2 wpath_findEmptyTile(WarPathFinder* finder, s32 x, s32 y)

@@ -148,9 +148,7 @@ struct _WarMapStatus
 
 struct _WarMap
 {
-#ifdef WAR_FRANK
     f64 frankNextFoWTime; // the fog's next update (10 Hz)
-#endif
     bool playing;
     bool custom;
     WarLevelResult result;
@@ -217,7 +215,6 @@ vec2 wmap_screenToMapCoordinatesV(WarContext* context, vec2 v);
 vec2 wmap_screenToMinimapCoordinatesV(WarContext* context, vec2 v);
 rect wmap_screenToMapCoordinatesR(WarContext* context, rect r);
 vec2 wmap_mapToScreenCoordinatesV(WarContext* context, vec2 v);
-rect wmap_mapToScreenCoordinatesR(WarContext* context, rect r);
 vec2 wmap_mapToTileCoordinatesV(vec2 v);
 vec2 wmap_tileToMapCoordinatesV(vec2 v, bool centeredInTile);
 vec2 wmap_minimapToViewportCoordinatesV(WarContext* context, vec2 v);
@@ -237,10 +234,6 @@ bool wmap_areAllTilesInState(WarMap* map, s32 startX, s32 startY, s32 width, s32
 bool wmap_areAllUnitTilesInState(WarContext* context, WarMap* map, WarEntity* entity, WarMapTileState state);
 
 bool wmap_isUnitPartiallyVisible(WarContext* context, WarMap* map, WarEntity* entity);
-bool wmap_isUnitVisible(WarContext* context, WarMap* map, WarEntity* entity);
-bool wmap_isUnitPartiallyFog(WarContext* context, WarMap* map, WarEntity* entity);
-bool wmap_isUnitFog(WarContext* context, WarMap* map, WarEntity* entity);
-bool wmap_isUnitPartiallyUnknown(WarContext* context, WarMap* map, WarEntity* entity);
 bool wmap_isUnitUnknown(WarContext* context, WarMap* map, WarEntity* entity);
 
 bool wmap_isTileUnknown(WarMap* map, s32 x, s32 y);

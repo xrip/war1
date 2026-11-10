@@ -97,14 +97,6 @@ void wcheatp_createCheatsPanel(WarContext* context)
     // frame by wcheatp_renderCheatsPanel() called from wsc_renderScene().
 }
 
-void wcheatp_setCheatText(WarContext* context, String text)
-{
-    NOT_USED(context);
-    // Text is now derived directly from cheatStatus->text in wcheatp_renderCheatsPanel.
-    // Free the String to avoid leaks if callers still pass one.
-    wstr_free(text);
-}
-
 void wcheatp_updateCheatsPanel(WarContext* context)
 {
     WarScene* scene = context->scene;

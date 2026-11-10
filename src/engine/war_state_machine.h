@@ -5,7 +5,6 @@
 
 #include "war_math.h"
 #include "war_units.h"
-#include "war_rvo.h"
 #include "war_pathfinder.h"
 #include "war_collections.h"
 
@@ -65,21 +64,10 @@ struct _WarStateMove
 
     bool checkForAttacks;
 
-    vec2 rvoVelocity; // last frame's RVO output, pixels/sec
-
     WarMoveProgress progress;
     vec2 progressGoalPosition;
     s32  progressWaypointIndex;
 
-    vec2 rvoPreferredVelocity;
-    vec2 rvoAdjustedVelocity;
-    vec2 rvoPosition;
-    f32  rvoRadius;
-    s32  rvoNumCandidates;
-    s32  rvoBestIndex;
-    vec2 rvoCandidates[RVO_MAX_CANDIDATES];
-    bool rvoCandidateHadCollision[RVO_MAX_CANDIDATES];
-#ifdef WAR_FRANK
     // frank: the original's walking (port/move.inc): a unit or
     // building to reach within a range in tiles (a follow's), and done
     WarEntityId frankTarget;
@@ -89,7 +77,6 @@ struct _WarStateMove
     u8 frankNextOrder;        // following order, or 31 (0x2EFC4)
     bool frankEntered;
     bool frankSelectAfterStep;   // begun mid-step: its walk order at the step's checkpoint
-#endif
 };
 
 struct _WarStatePatrol
@@ -114,20 +101,16 @@ struct _WarStateAttack
     WarStateBase base;
     WarEntityId targetEntityId;
     vec2 targetPosition;
-#ifdef WAR_FRANK
     u8 frankOrder;       // fixed target 5, attack 6, auto-attack 8
     bool frankPursue;    // command starts with move/attack rather than attack alone (0x2109C)
     bool frankPrepared;  // the command's initial range resolution has run (0x22554)
-#endif
 };
 
 struct _WarStateGold
 {
     WarStateBase base;
     WarEntityId goldmineId;
-#ifdef WAR_FRANK
     bool frankEntered;   // stepped into the mine
-#endif
 };
 
 struct _WarStateMining
@@ -135,10 +118,8 @@ struct _WarStateMining
     WarStateBase base;
     WarEntityId goldmineId;
     f32 miningTime;
-#ifdef WAR_FRANK
     s32 frankTicks;   // the original's 80 ticks inside, counted by the AI's tick
     bool frankLoaded; // a load taken on the way in (0x1CFF4)
-#endif
 };
 
 struct _WarStateWood
@@ -146,9 +127,7 @@ struct _WarStateWood
     WarStateBase base;
     WarEntityId forestId;
     vec2 position;
-#ifdef WAR_FRANK
     bool frankMoved;   // walked to the forest's edge once
-#endif
 };
 
 struct _WarStateChopping
@@ -156,9 +135,7 @@ struct _WarStateChopping
     WarStateBase base;
     WarEntityId forestId;
     vec2 position;
-#ifdef WAR_FRANK
     s32 frankChops;   // the original's harvest count (+0x48)
-#endif
 };
 
 struct _WarStateDeliver
@@ -166,10 +143,8 @@ struct _WarStateDeliver
     WarStateBase base;
     WarEntityId townHallId;
     bool insideBuilding;
-#ifdef WAR_FRANK
     bool frankEntered;   // stepped into the hall
     s32 frankTicks;      // ticks left inside
-#endif
     bool cycle;             // if true, resume gathering after delivery
     WarResourceKind sourceKind; // resource type to gather after delivery
     WarEntityId sourceId;   // goldmine or forest id for the cycle
@@ -199,10 +174,8 @@ struct _WarStateTrain
     bool outputCommitted;
     bool cancelled;
     bool alreadyRefunded;
-#ifdef WAR_FRANK
     s32 frankTicks;   // the original's ticks left (port/ai.c's tick runs it)
     s32 frankTotal;
-#endif
 };
 
 struct _WarStateUpgrade
@@ -252,10 +225,8 @@ struct _WarStateCast
     WarSpellType spellType;
     WarEntityId  targetEntityId;
     vec2         targetPosition;
-#ifdef WAR_FRANK
     bool frankPrepared, frankRunning;
     u8 frankNextOrder;
-#endif
 };
 
 struct _WarStateWait
@@ -303,7 +274,6 @@ WarStateRef    wst_refOf(WarContext* context, const WarStateBase* state);
 
 WarStateIdle*      wst_createIdleState(WarContext* context, WarEntity* entity, bool lookAround);
 WarStateMove*      wst_createMoveState(WarContext* context, WarEntity* entity, s32 positionCount, vec2 positions[], bool checkForAttacks);
-WarStatePatrol*    wst_createPatrolState(WarContext* context, WarEntity* entity, s32 positionCount, vec2 positions[]);
 WarStateFollow*    wst_createFollowState(WarContext* context, WarEntity* entity, WarEntityId targetEntityId, vec2 targetPosition, s32 targetDistance);
 WarStateAttack*    wst_createAttackState(WarContext* context, WarEntity* entity, WarEntityId targetEntityId, vec2 targetPosition);
 WarStateDeath*     wst_createDeathState(WarContext* context, WarEntity* entity);
@@ -324,7 +294,6 @@ WarStateCast*      wst_createCastState(WarContext* context, WarEntity* entity, W
 bool wst_canSubmitTransition(WarContext* context, WarEntity* entity, WarInterruptKind interrupt);
 bool wst_submitTransition(WarContext* context, WarEntity* entity, WarTransitionRequest request);
 bool wst_pushState(WarContext* context, WarEntity* entity, WarStateBase* state, WarTransitionCause cause);
-#ifdef WAR_FRANK
 // frank: the original's walking (port/move.inc)
 void wmv_setTerrain(const u16* data);
 bool wmv_hasTerrain(s32 x, s32 y, u16 mask);
@@ -368,7 +337,6 @@ void wmv_occupy(WarContext* context, WarEntity* entity);
 void wft_poolVisual(WarContext* context, u8 type, WarEntity* at);
 bool wmv_findExit(WarContext* context, WarEntity* entity, s32 tx, s32 ty, vec2* result);
 #define WMV_INSIDE_SECONDS (80 * 0.03f)   // the original's 80 ticks in a mine or a hall
-#endif
 bool wst_popState(WarContext* context, WarEntity* entity, WarTransitionCause cause, WarStateResult result);
 bool wst_replaceState(WarContext* context, WarEntity* entity, WarStateBase* state, WarTransitionCause cause);
 bool wst_resetState(WarContext* context, WarEntity* entity, WarStateBase* state, WarTransitionCause cause);
@@ -380,7 +348,6 @@ bool wst_resetStateForCancellation(WarContext* context, WarEntity* entity, WarSt
 WarStateBase* wst_getActiveState(WarContext* context, WarEntity* entity);
 WarStateBase* wst_getActiveStateOfType(WarContext* context, WarEntity* entity, WarStateType type);
 bool          wst_isActiveState(WarContext* context, WarEntity* entity, WarStateType type);
-WarStateBase* wst_peekAt(WarContext* context, WarEntity* entity, u8 index);
 
 // --- Stack-membership queries ---
 // Stack membership = the state exists anywhere in the stack, active or paused.
@@ -391,97 +358,42 @@ bool          wst_containsState(WarContext* context, WarEntity* entity, WarState
 bool wst_isNextUpdateTime(WarContext* context, WarState* state);
 
 // --- Typed active-state accessors ---
-WarStateIdle*      wst_getActiveIdleState(WarContext* context, WarEntity* entity);
-WarStateMove*      wst_getActiveMoveState(WarContext* context, WarEntity* entity);
-WarStatePatrol*    wst_getActivePatrolState(WarContext* context, WarEntity* entity);
-WarStateFollow*    wst_getActiveFollowState(WarContext* context, WarEntity* entity);
-WarStateAttack*    wst_getActiveAttackState(WarContext* context, WarEntity* entity);
-WarStateDeath*     wst_getActiveDeathState(WarContext* context, WarEntity* entity);
-WarStateCollapse*  wst_getActiveCollapseState(WarContext* context, WarEntity* entity);
-WarStateGold*      wst_getActiveGatherGoldState(WarContext* context, WarEntity* entity);
-WarStateMining*    wst_getActiveMiningState(WarContext* context, WarEntity* entity);
-WarStateWood*      wst_getActiveGatherWoodState(WarContext* context, WarEntity* entity);
-WarStateChopping*  wst_getActiveChoppingState(WarContext* context, WarEntity* entity);
-WarStateDeliver*   wst_getActiveDeliverState(WarContext* context, WarEntity* entity);
-WarStateTrain*     wst_getActiveTrainState(WarContext* context, WarEntity* entity);
-WarStateUpgrade*   wst_getActiveUpgradeState(WarContext* context, WarEntity* entity);
-WarStateBuild*     wst_getActiveBuildState(WarContext* context, WarEntity* entity);
-WarStateRepair*    wst_getActiveRepairState(WarContext* context, WarEntity* entity);
-WarStateRepairing* wst_getActiveRepairingState(WarContext* context, WarEntity* entity);
-WarStateCast*      wst_getActiveCastState(WarContext* context, WarEntity* entity);
 
 // --- Typed stack-membership accessors ---
-WarStateIdle*      wst_getIdleState(WarContext* context, WarEntity* entity);
 WarStateMove*      wst_getMoveState(WarContext* context, WarEntity* entity);
 WarStatePatrol*    wst_getPatrolState(WarContext* context, WarEntity* entity);
-WarStateFollow*    wst_getFollowState(WarContext* context, WarEntity* entity);
 WarStateAttack*    wst_getAttackState(WarContext* context, WarEntity* entity);
-WarStateDeath*     wst_getDeathState(WarContext* context, WarEntity* entity);
-WarStateCollapse*  wst_getCollapseState(WarContext* context, WarEntity* entity);
-WarStateGold*      wst_getGatherGoldState(WarContext* context, WarEntity* entity);
 WarStateMining*    wst_getMiningState(WarContext* context, WarEntity* entity);
-WarStateWood*      wst_getGatherWoodState(WarContext* context, WarEntity* entity);
-WarStateChopping*  wst_getChoppingState(WarContext* context, WarEntity* entity);
 WarStateDeliver*   wst_getDeliverState(WarContext* context, WarEntity* entity);
 WarStateTrain*     wst_getTrainState(WarContext* context, WarEntity* entity);
 WarStateUpgrade*   wst_getUpgradeState(WarContext* context, WarEntity* entity);
 WarStateBuild*     wst_getBuildState(WarContext* context, WarEntity* entity);
-WarStateRepair*    wst_getRepairState(WarContext* context, WarEntity* entity);
 WarStateRepairing* wst_getRepairingState(WarContext* context, WarEntity* entity);
-WarStateCast*      wst_getCastState(WarContext* context, WarEntity* entity);
 
 // --- Active-state boolean predicates ---
 bool wst_isIdle(WarContext* context, WarEntity* entity);
-bool wst_isActivelyMoving(WarContext* context, WarEntity* entity);
-bool wst_isActivelyPatrolling(WarContext* context, WarEntity* entity);
-bool wst_isActivelyFollowing(WarContext* context, WarEntity* entity);
-bool wst_isActivelyAttacking(WarContext* context, WarEntity* entity);
-bool wst_isActivelyMining(WarContext* context, WarEntity* entity);
-bool wst_isActivelyChopping(WarContext* context, WarEntity* entity);
-bool wst_isActivelyDelivering(WarContext* context, WarEntity* entity);
-bool wst_isActivelyCasting(WarContext* context, WarEntity* entity);
-bool wst_isActivelyRepairing(WarContext* context, WarEntity* entity);
-bool wst_isActivelyRepairing2(WarContext* context, WarEntity* entity);
 
 // --- Stack-membership boolean predicates ---
 bool wst_isMoving(WarContext* context, WarEntity* entity);
 bool wst_isPatrolling(WarContext* context, WarEntity* entity);
-bool wst_isFollowing(WarContext* context, WarEntity* entity);
 bool wst_isAttacking(WarContext* context, WarEntity* entity);
 bool wst_isDead(WarContext* context, WarEntity* entity);
 bool wst_isCollapsing(WarContext* context, WarEntity* entity);
 bool wst_isGatheringGold(WarContext* context, WarEntity* entity);
 bool wst_isMining(WarContext* context, WarEntity* entity);
-bool wst_isGatheringWood(WarContext* context, WarEntity* entity);
-bool wst_isChopping(WarContext* context, WarEntity* entity);
 bool wst_isDelivering(WarContext* context, WarEntity* entity);
 bool wst_isTraining(WarContext* context, WarEntity* entity);
 bool wst_isUpgrading(WarContext* context, WarEntity* entity);
 bool wst_isBuilding(WarContext* context, WarEntity* entity);
-bool wst_isRepairing(WarContext* context, WarEntity* entity);
 bool wst_isRepairing2(WarContext* context, WarEntity* entity);
-bool wst_isCasting(WarContext* context, WarEntity* entity);
 
 bool wst_hasPendingState(WarContext* context, WarEntity* entity, WarStateType type);
 
-bool wst_isGoingToIdle(WarContext* context, WarEntity* entity);
-bool wst_isGoingToMove(WarContext* context, WarEntity* entity);
-bool wst_isGoingToPatrol(WarContext* context, WarEntity* entity);
-bool wst_isGoingToFollow(WarContext* context, WarEntity* entity);
-bool wst_isGoingToAttack(WarContext* context, WarEntity* entity);
 bool wst_isGoingToDie(WarContext* context, WarEntity* entity);
 bool wst_isGoingToCollapse(WarContext* context, WarEntity* entity);
-bool wst_isGoingToGatherGold(WarContext* context, WarEntity* entity);
-bool wst_isGoingToMine(WarContext* context, WarEntity* entity);
-bool wst_isGoingToGatherWood(WarContext* context, WarEntity* entity);
-bool wst_isGoingToChop(WarContext* context, WarEntity* entity);
-bool wst_isGoingToDeliver(WarContext* context, WarEntity* entity);
 bool wst_isGoingToTrain(WarContext* context, WarEntity* entity);
 bool wst_isGoingToUpgrade(WarContext* context, WarEntity* entity);
 bool wst_isGoingToBuild(WarContext* context, WarEntity* entity);
-bool wst_isGoingToRepair(WarContext* context, WarEntity* entity);
-bool wst_isGoingToRepair2(WarContext* context, WarEntity* entity);
-bool wst_isGoingToCast(WarContext* context, WarEntity* entity);
 
 bool wst_isInsideBuilding(WarContext* context, WarEntity* entity);
 
@@ -506,7 +418,6 @@ void wst_exitBuildState(WarContext* context, WarEntity* entity, WarState* state,
 void wst_exitRepairingState(WarContext* context, WarEntity* entity, WarState* state, WarStateExitReason reason);
 void wst_exitWaitState(WarContext* context, WarEntity* entity, WarState* state, WarStateExitReason reason);
 
-bool wst_canInterruptCast(WarContext* context, WarEntity* entity, WarStateBase* state, WarInterruptKind interrupt);
 
 void wst_updateIdleState(WarContext* context, WarEntity* entity, WarState* state);
 void wst_updatePatrolState(WarContext* context, WarEntity* entity, WarState* state);

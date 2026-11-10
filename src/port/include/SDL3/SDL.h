@@ -27,7 +27,6 @@
 
 /* The real SDL3 (host/plat_host.c) lives in the same program on the host:
  * these names must not clash with it. */
-#define SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK FSDL_AUDIO_DEVICE_DEFAULT_PLAYBACK
 #define SDL_CloseIO FSDL_CloseIO
 #define SDL_ConvertEventToRenderCoordinates FSDL_ConvertEventToRenderCoordinates
 #define SDL_CreateMutex FSDL_CreateMutex
