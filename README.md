@@ -1,8 +1,7 @@
 # war1
 
 **Warcraft: Orcs & Humans on the desktop:** the game on Windows (and
-macOS/Linux) with SDL3. The RP2350 board firmware is in the git history, up
-to commit `c304e04`.
+macOS/Linux) with SDL3. 
 
 The engine is [war1](https://github.com/acoto87/war1), an open-source
 reimplementation of Warcraft: Orcs & Humans in C. The port adds a platform
