@@ -1095,8 +1095,8 @@ void wst_processPendingTransitionOf(WarContext* context, WarEntity* entity)
     WarUnitComponent* unit = wu_isUnit(entity) ? we_getUnitComponent(context, entity) : NULL;
     if (unit)
     {
-        if (unit->frankOrderQueued && pending->cause == WAR_TRANSITION_CAUSE_AI_ORDER) return;
-        unit->frankOrderQueued = false;
+        if (unit->orderQueued && pending->cause == WAR_TRANSITION_CAUSE_AI_ORDER) return;
+        unit->orderQueued = false;
     }
 
     WarTransitionRequest request = *pending;

@@ -22,7 +22,7 @@ struct _WarUnitActionDef
     bool directional;
     bool loop;
     WarUnitActionStepList steps;
-    bool frankTicks;   // waits in the original's game ticks (units/scripts.c)
+    bool waitsInTicks;   // waits in the original's game ticks (units/scripts.c)
 };
 
 struct _WarUnitAction

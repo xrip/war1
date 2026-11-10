@@ -46,8 +46,8 @@ void wst_updateDeathState(WarContext* context, WarEntity* entity, WarState* stat
     // when this state updates there will have pass the time of the death animation,
     // using the delay field of the states
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
-    const bool hiddenCorpse = wai_drivesTicks(context) && unit->frankOriginalSlot &&
-        (we_getEntityManager(context)->originalUnits[unit->frankOriginalSlot - 1].flags & WOR_INSIDE);
+    const bool hiddenCorpse = wai_drivesTicks(context) && unit->kernelSlot &&
+        (we_getEntityManager(context)->originalUnits[unit->kernelSlot - 1].flags & WOR_INSIDE);
     if (!wu_isCorpseUnit(context, entity) && !wu_isCatapultUnit(context, entity) &&
         !wu_isSummonUnit(context, entity) && !wu_isSkeletonUnit(context, entity)
         && !hiddenCorpse
@@ -69,7 +69,7 @@ void wst_updateDeathState(WarContext* context, WarEntity* entity, WarState* stat
         ));
 
         wu_setUnitDirection(context, corpse, wu_getUnitDirection(context, entity));
-        we_getUnitComponent(context, corpse)->frankCorpseSlot = unit->frankOriginalSlot;
+        we_getUnitComponent(context, corpse)->corpseSlot = unit->kernelSlot;
 
         WarStateDeath* deathState = wst_createDeathState(context, corpse);
         wst_resetState(context, corpse, (WarStateBase*)deathState, WAR_TRANSITION_CAUSE_LIFECYCLE);

@@ -24,9 +24,9 @@ WarStateCast* wst_createCastState(WarContext* context, WarEntity* entity, WarSpe
     state->spellType = spellType;
     state->targetEntityId = targetEntityId;
     state->targetPosition = targetPosition;
-    state->frankPrepared = false;
-    state->frankRunning = false;
-    state->frankNextOrder = 2;
+    state->prepared = false;
+    state->running = false;
+    state->nextOrder = 2;
 
     return state;
 }
@@ -74,7 +74,7 @@ static void wst_frankPrepareCast(WarContext* context, WarEntity* entity, WarStat
     }
     const bool targeted = order == 17 || order == 19 || order == 21;
     const bool pointed = order == 20 || order == 26 || order == 27;
-    if (!state->frankPrepared && (targeted || pointed))
+    if (!state->prepared && (targeted || pointed))
     {
         WarEntity* target = targeted ? we_findEntity(context, state->targetEntityId) : NULL;
         WarUnitComponent* other = target && wu_isUnit(target) ? we_getUnitComponent(context, target) : NULL;
@@ -86,7 +86,7 @@ static void wst_frankPrepareCast(WarContext* context, WarEntity* entity, WarStat
         WarUnitComponent* unit = we_getUnitComponent(context, entity);
         unit->wmvPathIndex = 20;
         unit->wmvBlocks = 0;
-        original->target = other ? other->frankOriginalSlot : 0;
+        original->target = other ? other->kernelSlot : 0;
         vec2 tile = target ? wu_getUnitCenterTile(context, target) : wmap_mapToTileCoordinatesV(state->targetPosition);
         if (!target)
         {
@@ -98,7 +98,7 @@ static void wst_frankPrepareCast(WarContext* context, WarEntity* entity, WarStat
         original->goalX = (s16)tile.x;
         original->goalY = (s16)tile.y;
         if (target) state->targetPosition = wu_getUnitCenterPosition(context, target);
-        state->frankPrepared = true;
+        state->prepared = true;
         const u8 range = targeted ? 8 : order == 20 ? 5 : 9;
         if (!(target ? wu_unitInRange(context, entity, target, range) : wu_tileInRange(context, entity, tile, range)))
         {
@@ -110,9 +110,9 @@ static void wst_frankPrepareCast(WarContext* context, WarEntity* entity, WarStat
                 wst_frankCastIdle(context, entity);
                 return;
             }
-            move->frankTarget = target ? target->id : 0;
-            move->frankRange = range;
-            move->frankNextOrder = order;
+            move->targetEntityId = target ? target->id : 0;
+            move->targetRange = range;
+            move->nextOrder = order;
             if (!wst_pushState(context, entity, (WarStateBase*)move, WAR_TRANSITION_CAUSE_COMPLETION))
             {
                 logError("original kernel: rejected spell movement for entity %u", entity->id);
@@ -121,12 +121,12 @@ static void wst_frankPrepareCast(WarContext* context, WarEntity* entity, WarStat
             return;
         }
     }
-    if (!state->frankRunning)
+    if (!state->running)
     {
-        if (!wos_startPair(context, entity, order, targeted || pointed ? WOR_NONE : state->frankNextOrder)) return;
-        state->frankPrepared = true;
-        state->frankRunning = true;
-        we_getUnitComponent(context, entity)->frankScriptChanged = true;
+        if (!wos_startPair(context, entity, order, targeted || pointed ? WOR_NONE : state->nextOrder)) return;
+        state->prepared = true;
+        state->running = true;
+        we_getUnitComponent(context, entity)->scriptChanged = true;
     }
 }
 
@@ -167,18 +167,18 @@ void wst_frankCastTick(WarContext* context, WarEntity* entity, WarStateBase* sta
 {
     WarStateCast* cast = (WarStateCast*)state;
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
-    if (unit->frankScriptChanged) return;
-    if (!cast->frankRunning)
+    if (unit->scriptChanged) return;
+    if (!cast->running)
     {
         // the range as the spell starts, not as it was ordered: the
         // recipient may have walked off meanwhile (the original's spell
         // entry walks first then, 0x21258)
-        cast->frankPrepared = false;
+        cast->prepared = false;
         // (a newer order waiting: no script yet to finish, it goes first)
         WarStateMachineComponent* sm = we_getStateMachineComponent(context, entity);
         if (sm && sm->pending.operation != WAR_STATE_OP_NONE)
         {
-            unit->frankOrderQueued = false;
+            unit->orderQueued = false;
             wmv_settle(context, entity);
             return;
         }
@@ -188,7 +188,7 @@ void wst_frankCastTick(WarContext* context, WarEntity* entity, WarStateBase* sta
     }
     // (a walk that handed over to the spell this turn ran this tick's
     // script: the spell's starts at the next, 0x2ECFC)
-    if (unit->frankScriptTick == wrng_tick) return;
+    if (unit->lastScriptTick == wrng_tick) return;
     if (wos_tick(context, entity, wst_frankCastAction) != WOR_CHANGED) return;
     if (wmv_takePendingOrder(context, entity)) return;
     WarOriginalUnit* original = wos_unit(context, entity);
@@ -229,8 +229,8 @@ void wst_frankCastTick(WarContext* context, WarEntity* entity, WarStateBase* sta
     }
     if (!wu_unitInRange(context, entity, target, 8))
     {
-        cast->frankPrepared = false;
-        cast->frankRunning = false;
+        cast->prepared = false;
+        cast->running = false;
         wst_frankPrepareCast(context, entity, cast);
         wmv_settle(context, entity);
         return;

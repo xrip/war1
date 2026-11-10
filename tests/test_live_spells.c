@@ -53,8 +53,8 @@ void wai_debug(void* opaque, const char* command)
         WarStateMove* move = wst_createMoveState(context, walker, 2,
             arrayArg(vec2, wu_getUnitCenterPosition(context, walker), wu_getUnitCenterPosition(context, blocker)), false);
         assert(move);
-        move->frankRange = 0;
-        move->frankNextOrder = WOR_NONE;
+        move->targetRange = 0;
+        move->nextOrder = WOR_NONE;
         assert(wst_resetState(context, walker, (WarStateBase*)move, WAR_TRANSITION_CAUSE_PLAYER_ORDER));
         wst_processPendingTransitionOf(context, walker);
         wmv_tickBegin(context);
@@ -147,7 +147,7 @@ void wai_debug(void* opaque, const char* command)
         WarUnitComponent* unit = we_getUnitComponent(context, caster);
         unsigned clouds = 0;
         for (unsigned i = 0; i < WOR_EFFECT_COUNT; i++)
-            if (wft_missiles[i].type == 3 && wft_missiles[i].source == unit->frankOriginalSlot)
+            if (wft_missiles[i].type == 3 && wft_missiles[i].source == unit->kernelSlot)
             {
                 assert(wft_missiles[i].pulses < 25);
                 clouds++;
@@ -175,7 +175,7 @@ void wai_debug(void* opaque, const char* command)
         assert(!wst_deref(context, firstRef));
         WarStateMachineComponent* sm = we_getStateMachineComponent(context, walker);
         assert(wst_deref(context, sm->pending.stateRef) == (WarStateBase*)second);
-        assert(we_getUnitComponent(context, walker)->frankOrderQueued);
+        assert(we_getUnitComponent(context, walker)->orderQueued);
         assert(wst_getActiveState(context, walker)->type == WAR_STATE_IDLE);
         WarStateIdle* playerOrder = wst_createIdleState(context, walker, false);
         assert(playerOrder && wst_resetState(context, walker, (WarStateBase*)playerOrder, WAR_TRANSITION_CAUSE_PLAYER_ORDER));
@@ -201,7 +201,7 @@ void wai_debug(void* opaque, const char* command)
                 {
                     WarEntity* victim = spellUnitAt(context, WAR_UNIT_FOOTMAN, x + i + 1, y);
                     corpseVictims[i] = victim->id;
-                    corpseSlots[i] = we_getUnitComponent(context, victim)->frankOriginalSlot - 1;
+                    corpseSlots[i] = we_getUnitComponent(context, victim)->kernelSlot - 1;
                 }
                 placed = true;
             }

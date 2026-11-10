@@ -52,7 +52,7 @@ static u32 wscr_animation(s32 type, s32 anim)
 static bool wscr_buildAction(WarUnitActionDef* def, u32 start, WarUnitActionStepType sound)
 {
     WarUnitActionDef out = createUnitActionDef(def->type, def->directional, false);
-    out.frankTicks = true;
+    out.waitsInTicks = true;
     u32 p = start;
     for (s32 n = 0; n < 200 && p < wscr_length; n++)
     {
@@ -228,9 +228,9 @@ WarOriginalUnit* wos_unit(WarContext* context, WarEntity* entity)
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
     if (!unit || wu_isCorpseUnitType(unit->type)) return NULL;
     WarEntityManager* manager = we_getEntityManager(context);
-    if (unit->frankOriginalSlot)
+    if (unit->kernelSlot)
     {
-        const u16 slot = unit->frankOriginalSlot - 1;
+        const u16 slot = unit->kernelSlot - 1;
         if (slot < WOR_UNIT_COUNT && manager->originalEntities[slot] == entity)
             return &manager->originalUnits[slot];
         logError("original kernel: stale record for entity %u", entity->id);
@@ -256,10 +256,10 @@ WarOriginalUnit* wos_unit(WarContext* context, WarEntity* entity)
             original->flags = WOR_FREE;
             return NULL;
         }
-        original->wait = (u8)(1 + unit->frankDelay);
+        original->wait = (u8)(1 + unit->startDelay);
         manager->originalEntities[slot] = entity;
-        unit->frankOriginalSlot = slot + 1;
-        unit->frankIdleOn = true;
+        unit->kernelSlot = slot + 1;
+        unit->idleScriptOn = true;
         return original;
     }
     logError("original kernel: all %u records occupied; entity %u has no script record",
@@ -280,9 +280,9 @@ bool wos_hasFreeRecord(WarContext* context)
 void wos_remove(WarContext* context, WarEntity* entity)
 {
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
-    if (!unit || !unit->frankOriginalSlot) return;
+    if (!unit || !unit->kernelSlot) return;
     WarEntityManager* manager = we_getEntityManager(context);
-    const u16 slot = unit->frankOriginalSlot - 1;
+    const u16 slot = unit->kernelSlot - 1;
     if (slot >= WOR_UNIT_COUNT || manager->originalEntities[slot] != entity)
     {
         logError("original kernel: invalid removal for entity %u", entity->id);
@@ -291,7 +291,7 @@ void wos_remove(WarContext* context, WarEntity* entity)
     if (!(manager->originalUnits[slot].flags & (WOR_DYING | WOR_REMOVED | WOR_PLACEHOLDER)))
         manager->originalUnits[slot].flags = WOR_FREE;
     manager->originalEntities[slot] = NULL;
-    unit->frankOriginalSlot = 0;
+    unit->kernelSlot = 0;
 }
 
 bool wos_select(WarContext* context, WarEntity* entity, u8 order, u8 wait)
@@ -303,9 +303,9 @@ bool wos_select(WarContext* context, WarEntity* entity, u8 order, u8 wait)
     WarOriginalRuntime runtime = wos_runtime(&call);
     original->type = (u8)wu_toOriginalType(unit->type);
     original->owner = unit->player;
-    if (wor_replace(&runtime, unit->frankOriginalSlot - 1, order) != WOR_CHANGED) return false;
+    if (wor_replace(&runtime, unit->kernelSlot - 1, order) != WOR_CHANGED) return false;
     original->wait = wait;
-    unit->frankIdleOn = order == 2 || order == 29;
+    unit->idleScriptOn = order == 2 || order == 29;
     return true;
 }
 
@@ -313,7 +313,7 @@ void wos_beginDeath(WarContext* context, WarEntity* entity)
 {
     if (!wai_drivesTicks(context)) return;
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
-    if (!unit || !unit->frankOriginalSlot || wu_isCorpseUnitType(unit->type)) return;
+    if (!unit || !unit->kernelSlot || wu_isCorpseUnitType(unit->type)) return;
     WarOriginalUnit* original = wos_unit(context, entity);
     if (!original || (original->flags & WOR_INACTIVE)) return;
     if (!wos_select(context, entity, 1, 1)) return;
@@ -326,7 +326,7 @@ void wos_beginDeath(WarContext* context, WarEntity* entity)
         // in turn (0x2E23C): a builder inside its construction, a worker
         // inside a hall or a mine
         WarEntityManager* manager = we_getEntityManager(context);
-        const u16 me = unit->frankOriginalSlot;
+        const u16 me = unit->kernelSlot;
         for (u16 slot = 0; slot < WOR_UNIT_COUNT; slot++)
         {
             WarEntity* inside = manager->originalEntities[slot];
@@ -366,7 +366,7 @@ static void wos_hideCorpse(WarContext* context, u16 slot)
     {
         WarEntity* visual = &manager->entities[i];
         if (!visual->id || !wu_isCorpseUnit(context, visual)) continue;
-        if (we_getUnitComponent(context, visual)->frankCorpseSlot == slot + 1)
+        if (we_getUnitComponent(context, visual)->corpseSlot == slot + 1)
         {
             we_removeEntityById(context, visual->id);
             return;
@@ -403,7 +403,7 @@ static WarOrderResult wos_deathOrder(WarOriginalRuntime* runtime, u16 slot)
     }
     WarEntityManager* manager = we_getEntityManager(call->context);
     if (manager->originalEntities[slot])
-        we_getUnitComponent(call->context, manager->originalEntities[slot])->frankOriginalSlot = 0;
+        we_getUnitComponent(call->context, manager->originalEntities[slot])->kernelSlot = 0;
     manager->originalEntities[slot] = NULL;
     return WOR_UNCHANGED;
 }
@@ -427,7 +427,7 @@ WarOrderResult wos_takePost(WarContext* context, WarEntity* entity, bool* alerte
     WarOriginalCall call = { .context = context, .entity = entity };
     WarOriginalRuntime runtime = wos_runtime(&call);
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
-    return wor_takePost(&runtime, unit->frankOriginalSlot - 1, alerted);
+    return wor_takePost(&runtime, unit->kernelSlot - 1, alerted);
 }
 
 bool wos_startPair(WarContext* context, WarEntity* entity, u8 pending, u8 next)
@@ -436,10 +436,10 @@ bool wos_startPair(WarContext* context, WarEntity* entity, u8 pending, u8 next)
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
     WarOriginalCall call = { .context = context, .entity = entity };
     WarOriginalRuntime runtime = wos_runtime(&call);
-    const u16 slot = unit->frankOriginalSlot - 1;
+    const u16 slot = unit->kernelSlot - 1;
     if (wor_queue(&runtime, slot, pending, next) != WOR_CHANGED) return false;
     if (wor_consume(&runtime, slot, false) != WOR_CHANGED) return false;
-    unit->frankIdleOn = pending == 2 || pending == 29;
+    unit->idleScriptOn = pending == 2 || pending == 29;
     return true;
 }
 
@@ -448,7 +448,7 @@ bool wos_queue(WarContext* context, WarEntity* entity, u8 pending, u8 next)
     if (!wos_unit(context, entity)) return false;
     WarOriginalCall call = { .context = context, .entity = entity };
     WarOriginalRuntime runtime = wos_runtime(&call);
-    return wor_queue(&runtime, we_getUnitComponent(context, entity)->frankOriginalSlot - 1,
+    return wor_queue(&runtime, we_getUnitComponent(context, entity)->kernelSlot - 1,
                      pending, next) == WOR_CHANGED;
 }
 
@@ -472,17 +472,17 @@ WarOrderResult wos_targetSpell(WarContext* context, WarEntity* entity, bool acti
     switch (original->current)
     {
         case 17:
-            result = wor_healing(&runtime, unit->frankOriginalSlot - 1, &mana, &health,
+            result = wor_healing(&runtime, unit->kernelSlot - 1, &mana, &health,
                 (u16)wu_getUnitStats(other->type)->hp, action);
             break;
         case 19:
-            result = wor_invisibility(&runtime, unit->frankOriginalSlot - 1, &mana, action);
+            result = wor_invisibility(&runtime, unit->kernelSlot - 1, &mana, action);
             break;
         case 21:
-            result = wor_unholyArmour(&runtime, unit->frankOriginalSlot - 1, &mana, &health, action);
+            result = wor_unholyArmour(&runtime, unit->kernelSlot - 1, &mana, &health, action);
             break;
         default:
-            wos_error(&runtime, unit->frankOriginalSlot - 1, "invalid targeted spell order");
+            wos_error(&runtime, unit->kernelSlot - 1, "invalid targeted spell order");
             return WOR_ERROR;
     }
     unit->mana = mana;
@@ -544,7 +544,7 @@ WarOrderResult wos_summon(WarContext* context, WarEntity* entity, bool action)
     WarOriginalCall call = { .context = context, .entity = entity };
     WarOriginalRuntime runtime = wos_runtime(&call);
     runtime.summon = wos_spawn;
-    WarOrderResult result = wor_summon(&runtime, unit->frankOriginalSlot - 1, &mana, action);
+    WarOrderResult result = wor_summon(&runtime, unit->kernelSlot - 1, &mana, action);
     we_getUnitComponent(context, entity)->mana = mana;
     return result;
 }
@@ -578,7 +578,7 @@ WarOrderResult wos_resurrect(WarContext* context, WarEntity* entity, bool action
     WarOriginalCall call = { .context = context, .entity = entity };
     WarOriginalRuntime runtime = wos_runtime(&call);
     runtime.resurrect = wos_raiseCorpse;
-    WarOrderResult result = wor_resurrect(&runtime, unit->frankOriginalSlot - 1, &mana, action);
+    WarOrderResult result = wor_resurrect(&runtime, unit->kernelSlot - 1, &mana, action);
     we_getUnitComponent(context, entity)->mana = mana;
     return result;
 }
@@ -591,7 +591,7 @@ WarOrderResult wos_shotMana(WarContext* context, WarEntity* entity, bool action)
     WarOriginalCall call = { .context = context, .entity = entity };
     WarOriginalRuntime runtime = wos_runtime(&call);
     WarResource* level = wres_getOrCreateResource(context, context->map->levelInfoIndex);
-    WarOrderResult result = wor_shotMana(&runtime, unit->frankOriginalSlot - 1,
+    WarOrderResult result = wor_shotMana(&runtime, unit->kernelSlot - 1,
         level->levelInfo.ai->alliance[unit->player], &mana, action);
     unit->mana = mana;
     return result;
@@ -653,11 +653,11 @@ WarOrderResult wos_takeNext(WarContext* context, WarEntity* entity)
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
     WarOriginalCall call = { .context = context, .entity = entity };
     WarOriginalRuntime runtime = wos_runtime(&call);
-    WarOrderResult result = wor_consume(&runtime, unit->frankOriginalSlot - 1, true);
+    WarOrderResult result = wor_consume(&runtime, unit->kernelSlot - 1, true);
     if (result == WOR_CHANGED)
     {
-        const u8 order = runtime.units[unit->frankOriginalSlot - 1].current;
-        unit->frankIdleOn = order == 2 || order == 29;
+        const u8 order = runtime.units[unit->kernelSlot - 1].current;
+        unit->idleScriptOn = order == 2 || order == 29;
     }
     return result;
 }
@@ -708,16 +708,16 @@ static u16 wos_reference(WarContext* context, WarEntityId id, u16 retained)
     if (entity && wu_isUnit(entity))
     {
         WarUnitComponent* unit = we_getUnitComponent(context, entity);
-        if (unit->frankOriginalSlot)
+        if (unit->kernelSlot)
         {
-            WarOriginalUnit* original = &we_getEntityManager(context)->originalUnits[unit->frankOriginalSlot - 1];
+            WarOriginalUnit* original = &we_getEntityManager(context)->originalUnits[unit->kernelSlot - 1];
             if (!(original->flags & WOR_INACTIVE))
             {
                 if (wst_isInsideBuilding(context, entity)) original->flags |= WOR_INSIDE;
                 else original->flags &= (u16)~WOR_INSIDE;
                 if (!unit->invisible) original->invisibility = 0;
             }
-            return unit->frankOriginalSlot;
+            return unit->kernelSlot;
         }
     }
     if (!retained) logError("original kernel: entity %u has no retained target record", id);
@@ -750,7 +750,7 @@ bool wos_areaTarget(WarContext* context, WarEntity* entity, s16 tx, s16 ty, s16*
     WarOriginalCall call = { .context = context, .entity = entity };
     WarOriginalRuntime runtime = wos_runtime(&call);
     runtime.occupant = wos_occupant;
-    return wor_areaTarget(&runtime, we_getUnitComponent(context, entity)->frankOriginalSlot - 1,
+    return wor_areaTarget(&runtime, we_getUnitComponent(context, entity)->kernelSlot - 1,
                           tx, ty, x, y) == WOR_CHANGED;
 }
 
@@ -763,12 +763,12 @@ WarOrderResult wos_checkCatapult(WarContext* context, WarEntity* entity, WarEnti
     wos_syncTile(context, target, other);
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
     WarUnitComponent* recipient = we_getUnitComponent(context, target);
-    original->target = recipient->frankOriginalSlot;
+    original->target = recipient->kernelSlot;
     WarOriginalCall call = { .context = context, .entity = entity };
     WarOriginalRuntime runtime = wos_runtime(&call);
     runtime.occupant = wos_occupant;
     WarResource* level = wres_getOrCreateResource(context, context->map->levelInfoIndex);
-    return wor_checkCatapult(&runtime, unit->frankOriginalSlot - 1,
+    return wor_checkCatapult(&runtime, unit->kernelSlot - 1,
         level->levelInfo.ai->alliance[unit->player], 3, (u8)recipient->sizex, (u8)recipient->sizey);
 }
 
@@ -781,7 +781,7 @@ static bool wos_moveTargetValid(WarContext* context, WarEntity* entity, WarEntit
     original->target = wos_reference(context, target ? target->id : 0, original->target);
     WarOriginalCall call = { .context = context, .entity = entity };
     WarOriginalRuntime runtime = wos_runtime(&call);
-    return wor_validateTarget(&runtime, we_getUnitComponent(context, entity)->frankOriginalSlot - 1);
+    return wor_validateTarget(&runtime, we_getUnitComponent(context, entity)->kernelSlot - 1);
 }
 
 bool wos_validateTarget(WarContext* context, WarEntity* entity,
@@ -793,7 +793,7 @@ bool wos_validateTarget(WarContext* context, WarEntity* entity,
     original->attacker = wos_reference(context, *attacker, original->attacker);
     WarOriginalCall call = { .context = context, .entity = entity };
     WarOriginalRuntime runtime = wos_runtime(&call);
-    const bool valid = wor_validateTarget(&runtime, we_getUnitComponent(context, entity)->frankOriginalSlot - 1);
+    const bool valid = wor_validateTarget(&runtime, we_getUnitComponent(context, entity)->kernelSlot - 1);
     WarEntityManager* manager = we_getEntityManager(context);
     if (!original->target) *target = 0;
     else if (manager->originalEntities[original->target - 1])
@@ -818,7 +818,7 @@ void wos_explore(WarContext* context, WarEntity* entity)
     }
     WarOriginalCall call = { .context = context, .entity = entity };
     WarOriginalRuntime runtime = wos_runtime(&call);
-    wor_explore(&runtime, &we_getEntityManager(context)->originalVision, unit->frankOriginalSlot - 1,
+    wor_explore(&runtime, &we_getEntityManager(context)->originalVision, unit->kernelSlot - 1,
                 (u8)unit->sizex, (u8)unit->sizey, unit->player == 0, false);
 }
 
@@ -876,7 +876,7 @@ WarOrderResult wos_tick(WarContext* context, WarEntity* entity,
                 backtrace_symbols_fd(frames, backtrace(frames, 8), 2);
             }
         }
-        if (unit->frankScriptTick == wrng_tick)
+        if (unit->lastScriptTick == wrng_tick)
         {
             logError("original kernel: two scripts in tick %u for entity %u", wrng_tick, entity->id);
             if (getenv("WAR_KERNELTRACE"))
@@ -888,7 +888,7 @@ WarOrderResult wos_tick(WarContext* context, WarEntity* entity,
             }
             return WOR_ERROR;
         }
-        unit->frankScriptTick = wrng_tick;
+        unit->lastScriptTick = wrng_tick;
     }
     vec2 position = wu_getUnitCenterPosition(context, entity);
     original->pixelX = (s16)position.x;
@@ -897,10 +897,10 @@ WarOrderResult wos_tick(WarContext* context, WarEntity* entity,
     original->direction = unit->wmvStepping ? unit->wmvDir : (u8)unit->direction;
     original->owner = unit->player;
     if (!unit->invisible) original->invisibility = 0;
-    if (unit->frankOrderQueued) original->flags |= WOR_SUPPRESS_ACTION;
+    if (unit->orderQueued) original->flags |= WOR_SUPPRESS_ACTION;
     WarOriginalCall call = { context, entity, action };
     WarOriginalRuntime runtime = wos_runtime(&call);
-    const u16 slot = unit->frankOriginalSlot - 1;
+    const u16 slot = unit->kernelSlot - 1;
     const u8 speed = (u8)(context->map->players[unit->player].upgrades[2].level & 15);
     WarOrderResult result = wor_scriptTick(&runtime, slot, speed, unit->amount > 0);
     if (result != WOR_ERROR)

@@ -16,10 +16,10 @@ WarStateWood* wst_createGatherWoodState(WarContext* context, WarEntity* entity, 
 
     state->forestId = forestId;
     state->position = position;
-    state->frankMoved = false;
+    state->walkedToEdge = false;
 
     // (a gather command sets the work bits afresh, 0x21184)
-    we_getUnitComponent(context, entity)->frankReturning = false;
+    we_getUnitComponent(context, entity)->returningToWork = false;
 
     return state;
 }
@@ -72,16 +72,16 @@ void wst_updateGatherWoodState(WarContext* context, WarEntity* entity, WarState*
                 wmv_settle(context, entity);
                 return;
             }
-            if (s->frankMoved)
+            if (s->walkedToEdge)
             {
                 // the walk did not get there: the order is over
                 wst_replaceState(context, entity, (WarStateBase*)wst_createIdleState(context, entity, true), WAR_TRANSITION_CAUSE_COMPLETION);
                 return;
             }
-            s->frankMoved = true;
+            s->walkedToEdge = true;
             vec2 position = wu_getUnitCenterPosition(context, entity);
             WarStateMove* moveState = wst_createMoveState(context, entity, 2, arrayArg(vec2, position, wmap_tileToMapCoordinatesV(edge, true)), false);
-            if (moveState) moveState->frankRange = 1;
+            if (moveState) moveState->targetRange = 1;
             wst_pushState(context, entity, (WarStateBase*)moveState, WAR_TRANSITION_CAUSE_COMPLETION);
             return;
         }
@@ -95,7 +95,7 @@ void wst_updateGatherWoodState(WarContext* context, WarEntity* entity, WarState*
         if (!standing && wai_drivesTicks(context))
         {
             s->position = wmap_tileToMapCoordinatesV(vec2i(tx, ty), true);
-            s->frankMoved = false;
+            s->walkedToEdge = false;
             wmv_settle(context, entity);
             return;
         }
@@ -110,7 +110,7 @@ void wst_updateGatherWoodState(WarContext* context, WarEntity* entity, WarState*
             // a tree further off: a new wood order to it
             s->forestId = treeForest->id;
             s->position = wmap_tileToMapCoordinatesV(vec2i(tx, ty), true);
-            s->frankMoved = false;
+            s->walkedToEdge = false;
             return;
         }
         WarStateChopping* chop = wst_createChoppingState(context, entity, treeForest->id, wmap_tileToMapCoordinatesV(vec2i(tx, ty), true));
@@ -137,7 +137,7 @@ void wst_updateGatherWoodState(WarContext* context, WarEntity* entity, WarState*
     {
         vec2 position = wu_getUnitCenterPosition(context, entity);
         WarStateMove* moveState = wst_createMoveState(context, entity, 2, arrayArg(vec2, position, treePosition), false);
-        if (moveState) moveState->frankRange = stats->range;   // next to the tree (the original's range 1)
+        if (moveState) moveState->targetRange = stats->range;  // next to the tree (the original's range 1)
         wst_pushState(context, entity, (WarStateBase*)moveState, WAR_TRANSITION_CAUSE_COMPLETION);
         return;
     }

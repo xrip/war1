@@ -22,9 +22,9 @@ WarStateAttack* wst_createAttackState(WarContext* context, WarEntity* entity, Wa
 
     state->targetEntityId = targetEntityId;
     state->targetPosition = targetPosition;
-    state->frankOrder = 5;
-    state->frankPursue = true;
-    state->frankPrepared = false;
+    state->order = 5;
+    state->pursue = true;
+    state->prepared = false;
 
     return state;
 }
@@ -35,9 +35,9 @@ void wst_enterAttackState(WarContext* context, WarEntity* entity, WarStateBase* 
     if (!wai_drivesTicks(context)) return;
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
     if (!unit) return;
-    unit->frankAtkOn = false;
-    unit->frankAtkCheck = false;
-    unit->frankScriptChanged = true;
+    unit->attackScriptOn = false;
+    unit->attackCheckpoint = false;
+    unit->scriptChanged = true;
 }
 
 void wst_resumeAttackState(WarContext* context, WarEntity* entity, WarStateBase* state, WarStateResumeReason reason)
@@ -50,11 +50,11 @@ void wst_resumeAttackState(WarContext* context, WarEntity* entity, WarStateBase*
 // action script without executing its handler at the same checkpoint (0x22554, 0x2EE9C).
 static void wst_frankPrepareAttack(WarContext* context, WarEntity* entity, WarStateAttack* state)
 {
-    state->frankPrepared = true;
+    state->prepared = true;
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
     unit->wmvPathIndex = 20;
     unit->wmvBlocks = 0;
-    if (!state->frankPursue) return;
+    if (!state->pursue) return;
     WarEntity* target = state->targetEntityId ? we_findEntity(context, state->targetEntityId) : NULL;
     if (state->targetEntityId && !target) return;
     if (!target)
@@ -71,7 +71,7 @@ static void wst_frankPrepareAttack(WarContext* context, WarEntity* entity, WarSt
     }
     const vec2 goal = target ? wu_getUnitCenterPosition(context, target) : state->targetPosition;
     const vec2 tile = wmap_mapToTileCoordinatesV(goal);
-    const s32 range = state->frankOrder == 7 ? 1
+    const s32 range = state->order == 7 ? 1
         : target || wmv_hasTerrain((s32)tile.x, (s32)tile.y, 0xC) ? wu_getUnitStats(unit->type)->range : 0;
     const bool arrived = target && wu_isUnit(target) ? wu_unitInRange(context, entity, target, range)
         : wu_tileInRange(context, entity, wmap_mapToTileCoordinatesV(goal), range);
@@ -79,9 +79,9 @@ static void wst_frankPrepareAttack(WarContext* context, WarEntity* entity, WarSt
     WarStateMove* move = wst_createMoveState(context, entity, 2,
         arrayArg(vec2, wu_getUnitCenterPosition(context, entity), goal), false);
     if (!move) return;
-    move->frankTarget = target && wu_isUnit(target) ? target->id : 0;
-    move->frankRange = range;
-    move->frankNextOrder = state->frankOrder;
+    move->targetEntityId = target && wu_isUnit(target) ? target->id : 0;
+    move->targetRange = range;
+    move->nextOrder = state->order;
     wst_pushState(context, entity, (WarStateBase*)move, WAR_TRANSITION_CAUSE_COMPLETION);
 }
 
@@ -91,7 +91,7 @@ void wst_updateAttackState(WarContext* context, WarEntity* entity, WarState* sta
 
     if (wai_drivesTicks(context))
     {
-        if (!s->frankPrepared) wst_frankPrepareAttack(context, entity, s);
+        if (!s->prepared) wst_frankPrepareAttack(context, entity, s);
         return;
     }
     WarMap* map = context->map;

@@ -148,7 +148,7 @@ struct _WarMapStatus
 
 struct _WarMap
 {
-    f64 frankNextFoWTime; // the fog's next update (10 Hz)
+    f64 nextFogUpdateTime; // the fog's next update (10 Hz)
     bool playing;
     bool custom;
     WarLevelResult result;

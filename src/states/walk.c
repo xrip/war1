@@ -198,7 +198,7 @@ static void wmv_fitWall(WarContext* context, s32 x, s32 y, u16 bits)
 // player, 8 for the computers), the artwork round it, durability 20
 static void wmv_layWall(WarContext* context, WarWallPiece* piece)
 {
-    piece->frankLaid = true;
+    piece->laidInTerrain = true;
     const s32 x = piece->tilex, y = piece->tiley;
     const u16 bit = piece->player == 0 ? 4 : piece->player < 4 ? 8 : 0;
     if (!wmv_inside(x, y)) return;
@@ -235,7 +235,7 @@ void wmv_damageTerrain(WarContext* context, s32 x, s32 y, u8 damage)
         if (!WMV_STATIC(tile)) wpath_setFreeTiles(&context->map->finder, x, ty, 1, 1);
         // a war1 wall piece goes with its wall bit
         WarWallPiece* piece = wmv_wallPieceAt(context, x, ty);
-        if (piece && piece->frankLaid && !(wmv_terrain[tile] & 0xC)) piece->hp = 0;
+        if (piece && piece->laidInTerrain && !(wmv_terrain[tile] & 0xC)) piece->hp = 0;
     }
 }
 
@@ -291,7 +291,7 @@ static void wmv_buildGrids(WarContext* context)
                 WarWallPiece* p = &wall->pieces.items[k];
                 // a finished piece is laid in the terrain, which is its
                 // obstacle and wears it down from then on (0x2C23C)
-                if (p->hp > 0 && !p->frankLaid) wmv_layWall(context, p);
+                if (p->hp > 0 && !p->laidInTerrain) wmv_layWall(context, p);
             }
             continue;
         }
@@ -515,7 +515,7 @@ static bool wmv_plan(WarContext* context, WarEntity* e, WarUnitComponent* u, War
     };
     u->wmvPathIndex = 0;
     const s32 dist0 = wmv_cheb(p.sx, p.sy, gx, gy);
-    p.throughEnemies = mv->frankNextOrder == 6 && !wai_hasRetainedAttacker(context, e);
+    p.throughEnemies = mv->nextOrder == 6 && !wai_hasRetainedAttacker(context, e);
     WarResource* level = wres_getOrCreateResource(context, context->map->levelInfoIndex);
     if (level->levelInfo.ai && level->levelInfo.ai->alliance[u->player] != 0 &&
         !wu_isWorkerUnitType(u->type) && !wai_hasRetainedAttacker(context, e))
@@ -673,7 +673,7 @@ static void wmv_prepareWork(WarContext* context, WarEntity* entity, WarStateBase
     if (!original) return;
     original->goalX = (s16)goal.x;
     original->goalY = (s16)goal.y;
-    original->target = target ? we_getUnitComponent(context, target)->frankOriginalSlot : 0;
+    original->target = target ? we_getUnitComponent(context, target)->kernelSlot : 0;
     vec2 here = wu_getUnitCenterTile(context, entity);
     if (MAX(ABS((s32)here.x - (s32)goal.x), ABS((s32)here.y - (s32)goal.y)) <= 1)
     {
@@ -686,9 +686,9 @@ static void wmv_prepareWork(WarContext* context, WarEntity* entity, WarStateBase
         fprintf(stderr, "prepareWork tick %u state %d here %d,%d goal %d,%d move %p\n", wrng_tick, state->type,
                 (s32)here.x, (s32)here.y, (s32)goal.x, (s32)goal.y, (void*)move);
     if (!move) return;
-    move->frankTarget = target ? target->id : 0;
-    move->frankRange = 1;
-    move->frankNextOrder = next;
+    move->targetEntityId = target ? target->id : 0;
+    move->targetRange = 1;
+    move->nextOrder = next;
     wst_pushState(context, entity, (WarStateBase*)move, WAR_TRANSITION_CAUSE_COMPLETION);
 }
 
@@ -709,7 +709,7 @@ void wmv_settle(WarContext* context, WarEntity* e)
         {
             case WAR_STATE_FOLLOW:  wst_updateFollowState(context, e, st); break;
             case WAR_STATE_ATTACK:
-                if (wai_drivesTicks(context) && ((WarStateAttack*)st)->frankPrepared) return;
+                if (wai_drivesTicks(context) && ((WarStateAttack*)st)->prepared) return;
                 wst_updateAttackState(context, e, st);
                 break;
             case WAR_STATE_CAST:
@@ -749,8 +749,8 @@ void wmv_settle(WarContext* context, WarEntity* e)
 bool wmv_takePendingOrder(WarContext* context, WarEntity* entity)
 {
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
-    if (!unit || !unit->frankOrderQueued) return false;
-    unit->frankOrderQueued = false;
+    if (!unit || !unit->orderQueued) return false;
+    unit->orderQueued = false;
     WarStateMachineComponent* sm = we_getStateMachineComponent(context, entity);
     if (!sm || sm->pending.operation == WAR_STATE_OP_NONE) return false;
     wmv_settle(context, entity);
@@ -782,11 +782,11 @@ bool wmv_attackStep(WarContext* context, WarEntity* e, WarEntity* target)
 static void wmv_finish(WarContext* context, WarEntity* e, WarUnitComponent* u, WarStateMove* mv, WarStateResult result)
 {
     u->wmvPathIndex = WMV_PATH;
-    mv->frankDone = true;
+    mv->walkDone = true;
     wmv_stand(context, e);
     if (result == WAR_STATE_RESULT_SUCCESS || result == WAR_STATE_RESULT_TARGET_INVALID)
     {
-        const bool entered = mv->frankEnter != 0;
+        const bool entered = mv->enterBuildingId != 0;
         WarOriginalUnit* original = wos_unit(context, e);
         const bool work = wai_drivesTicks(context) && original &&
                           (original->next == 10 || original->next == 11);
@@ -857,18 +857,18 @@ static bool wmv_checkpoint(WarContext* context, WarEntity* e, WarUnitComponent* 
         return false;
     }
     // 0x11004: on the way to attack, a look round first
-    if (!mv->frankEnter)
+    if (!mv->enterBuildingId)
     {
-        const bool attackMove = mv->frankNextOrder == 6;
+        const bool attackMove = mv->nextOrder == 6;
         if (wai_moveAcquire(context, e, attackMove)) return false;
     }
-    if (mv->frankEnter)
+    if (mv->enterBuildingId)
     {
         // order 12 (0x1CFF4): a step onto the building, off the grid; at the
         // next checkpoint the unit is inside
-        WarEntity* b = we_findEntity(context, mv->frankEnter);
+        WarEntity* b = we_findEntity(context, mv->enterBuildingId);
         WarUnitComponent* bu = b && wu_isUnit(b) ? we_getUnitComponent(context, b) : NULL;
-        if (mv->frankEntered || !bu)
+        if (mv->entered || !bu)
         {
             wmv_finish(context, e, u, mv, bu ? WAR_STATE_RESULT_SUCCESS : WAR_STATE_RESULT_TARGET_INVALID);
             return false;
@@ -880,16 +880,16 @@ static bool wmv_checkpoint(WarContext* context, WarEntity* e, WarUnitComponent* 
         u->wmvTileX = (s16)CLAMP(u->wmvTileX + wmv_dx[d], 0, MAP_TILES_WIDTH - 1);
         u->wmvTileY = (s16)CLAMP(u->wmvTileY + wmv_dy[d], 0, MAP_TILES_HEIGHT - 1);
         u->wmvStepping = true;
-        mv->frankEntered = true;
+        mv->entered = true;
         wai_targetsDirty = true;
         wu_setUnitDirection(context, e, (WarDirection)d);
         wact_setAction(context, e, WAR_ACTION_TYPE_WALK, true, 1.0f);
         return true;
     }
     WarEntity* target = NULL;
-    if (mv->frankTarget)
+    if (mv->targetEntityId)
     {
-        target = we_findEntity(context, mv->frankTarget);
+        target = we_findEntity(context, mv->targetEntityId);
         WarUnitComponent* tu = target && wu_isUnit(target) ? we_getUnitComponent(context, target) : NULL;
         // (0x2216C: gone, inside or invisible ends the move, and the next
         // order takes over at once, 0x223D8)
@@ -919,7 +919,7 @@ static bool wmv_checkpoint(WarContext* context, WarEntity* e, WarUnitComponent* 
             gx = CLAMP((s32)(g.x / MEGA_TILE_WIDTH), 0, MAP_TILES_WIDTH - 1);
             gy = CLAMP((s32)(g.y / MEGA_TILE_HEIGHT), 0, MAP_TILES_HEIGHT - 1);
         }
-        if (wmv_cheb(u->wmvTileX, u->wmvTileY, gx, gy) > mv->frankRange) break;
+        if (wmv_cheb(u->wmvTileX, u->wmvTileY, gx, gy) > mv->targetRange) break;
         if (!target && mv->waypointsIndex < mv->waypointsCount - 2)
         {
             mv->waypointsIndex++;   // on to the next waypoint
@@ -999,10 +999,10 @@ static void wmv_runScript(WarContext* context, WarEntity* e, WarUnitComponent* u
     u->wmvStepping = false;
     wu_setUnitCenterTile(context, e, vec2i(u->wmvTileX, u->wmvTileY));
     if (wmv_takePendingOrder(context, e)) return;
-    if (!mv || mv->frankDone) return;
-    if (mv->frankSelectAfterStep)
+    if (!mv || mv->walkDone) return;
+    if (mv->selectAfterStep)
     {
-        mv->frankSelectAfterStep = false;
+        mv->selectAfterStep = false;
         wmv_selectWalk(context, e, mv);
         return;
     }
@@ -1060,13 +1060,13 @@ static void wmv_tick(WarContext* context)
 // order it leads to.
 static void wmv_selectWalk(WarContext* context, WarEntity* entity, WarStateMove* s)
 {
-    if (wai_drivesTicks(context) && (s->frankNextOrder == 7 ||
-        s->frankNextOrder == 17 || s->frankNextOrder == 19 || s->frankNextOrder == 20 || s->frankNextOrder == 21 ||
-        s->frankNextOrder == 27 ||
-        s->frankNextOrder == 10 || s->frankNextOrder == 11))
-        wos_startPair(context, entity, 3, s->frankNextOrder);
+    if (wai_drivesTicks(context) && (s->nextOrder == 7 ||
+        s->nextOrder == 17 || s->nextOrder == 19 || s->nextOrder == 20 || s->nextOrder == 21 ||
+        s->nextOrder == 27 ||
+        s->nextOrder == 10 || s->nextOrder == 11))
+        wos_startPair(context, entity, 3, s->nextOrder);
     else
-        wos_select(context, entity, s->frankEnter ? 12 : 3, 1);
+        wos_select(context, entity, s->enterBuildingId ? 12 : 3, 1);
 }
 
 // A move begins: the original's order setter drops the old route and the
@@ -1077,14 +1077,14 @@ static void wmv_enter(WarContext* context, WarEntity* entity, WarStateMove* s)
     if (!u) return;
     // Entry replaces the order directly; unlike a new movement command,
     // it preserves the blockage count used by other units' planners.
-    if (!s->frankEnter)
+    if (!s->enterBuildingId)
     {
         u->wmvPathIndex = WMV_PATH;
         u->wmvBlocks = 0;
         u->wmvGiveUp = false;
     }
-    s->frankDone = false;
-    s->frankSelectAfterStep = false;
+    s->walkDone = false;
+    s->selectAfterStep = false;
     if (!u->wmvStepping)
     {
         vec2 c = wu_getUnitCenterPosition(context, entity);
@@ -1094,7 +1094,7 @@ static void wmv_enter(WarContext* context, WarEntity* entity, WarStateMove* s)
     }
     // (begun mid-step, by a player's command: the step's script ends first,
     // then this walk's order is taken, not the old script's)
-    else if (wai_drivesTicks(context)) s->frankSelectAfterStep = true;
+    else if (wai_drivesTicks(context)) s->selectAfterStep = true;
 }
 
 static void wmv_update(WarContext* context)
@@ -1142,7 +1142,7 @@ bool wmv_enterBuilding(WarContext* context, WarEntity* entity, WarEntity* buildi
     vec2 p = wu_getUnitCenterPosition(context, entity);
     WarStateMove* mv = wst_createMoveState(context, entity, 2, arrayArg(vec2, p, p), false);
     if (!mv) return false;
-    mv->frankEnter = building->id;
+    mv->enterBuildingId = building->id;
     if (!wst_pushState(context, entity, (WarStateBase*)mv, WAR_TRANSITION_CAUSE_COMPLETION)) return false;
     return true;
 }

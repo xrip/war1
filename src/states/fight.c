@@ -62,8 +62,8 @@ static s32 wft_roll(WarContext* context, WarUnitComponent* u, WarEntity* target)
     else normal += bonus;
     if (!target)
     {
-        if (!u->frankOriginalSlot) return 0;
-        WarOriginalUnit* original = &we_getEntityManager(context)->originalUnits[u->frankOriginalSlot - 1];
+        if (!u->kernelSlot) return 0;
+        WarOriginalUnit* original = &we_getEntityManager(context)->originalUnits[u->kernelSlot - 1];
         return wmv_hasTerrain(original->goalX, original->goalY, 0xC)
             ? MIN(normal + piercing, 255) : 0;
     }
@@ -135,7 +135,7 @@ static WarOrderResult wft_poison(WarContext* context, WarEntity* entity, bool ac
     WarOriginalRuntime runtime = wos_runtime(&call);
     runtime.effects = wft_missiles;
     runtime.effectCreated = wft_poisonVisual;
-    WarOrderResult result = wor_poison(&runtime, unit->frankOriginalSlot - 1, &mana, action);
+    WarOrderResult result = wor_poison(&runtime, unit->kernelSlot - 1, &mana, action);
     we_getUnitComponent(context, entity)->mana = mana;
     return result;
 }
@@ -196,7 +196,7 @@ static WarOrderResult wft_rain(WarContext* context, WarEntity* entity, bool acti
     u8 mana = (u8)unit->mana;
     WarOriginalCall call = { .context = context, .entity = entity };
     WarOriginalRuntime runtime = wft_effectRuntime(&call);
-    WarOrderResult result = wor_rain(&runtime, unit->frankOriginalSlot - 1, &mana, action);
+    WarOrderResult result = wor_rain(&runtime, unit->kernelSlot - 1, &mana, action);
     we_getUnitComponent(context, entity)->mana = mana;
     return result;
 }
@@ -446,19 +446,19 @@ void wft_unitTick(WarContext* context, WarEntity* e, WarStateBase* st)
     if (st && st->type == WAR_STATE_CHOPPING) return;   // (its strokes: wst_frankChopTick)
     if (!st || st->type != WAR_STATE_ATTACK || u->wmvStepping)
     {
-        u->frankAtkOn = false;
+        u->attackScriptOn = false;
         return;
     }
-    if (u->frankScriptChanged) return; // no second script in the same unit turn (0x2ECFC)
-    if (!u->frankAtkOn)
+    if (u->scriptChanged) return;      // no second script in the same unit turn (0x2ECFC)
+    if (!u->attackScriptOn)
     {
         if (getenv("WAR_FIGHTDEBUG")) fprintf(stderr, "attack script starts t %.3f tick %u by %d (type %d)\n", context->gameTime, wrng_tick, (s32)e->id, u->type);
-        if (!wos_select(context, e, ((WarStateAttack*)st)->frankOrder, 1)) return;
-        u->frankAtkOn = true;
+        if (!wos_select(context, e, ((WarStateAttack*)st)->order, 1)) return;
+        u->attackScriptOn = true;
     }
     // (a walk that handed over to its attack this turn ran this tick's
     // script: the attack's starts at the next, 0x2ECFC)
-    if (u->frankScriptTick == wrng_tick) return;
+    if (u->lastScriptTick == wrng_tick) return;
     {
         static s32 watch = -2;
         if (watch == -2) watch = getenv("WAR_ATKDEBUG") ? atoi(getenv("WAR_ATKDEBUG")) : -1;
@@ -467,9 +467,9 @@ void wft_unitTick(WarContext* context, WarEntity* e, WarStateBase* st)
     }
     if (wos_tick(context, e, wft_action) != WOR_CHANGED) return;
     if (wmv_takePendingOrder(context, e)) return;
-    if (((WarStateAttack*)st)->frankOrder == 7)
+    if (((WarStateAttack*)st)->order == 7)
     {
-        u->frankAtkCheck = true;
+        u->attackCheckpoint = true;
         return;
     }
     // The action-target check at the attack checkpoint (0x2EFEC).
@@ -480,11 +480,11 @@ void wft_unitTick(WarContext* context, WarEntity* e, WarStateBase* st)
         (!tu || tu->hp <= 0 || wst_isDead(context, target) || wst_isCollapsing(context, target) ||
          wst_isInsideBuilding(context, target))))
     {
-        u->frankAtkOn = false;
+        u->attackScriptOn = false;
         wst_popState(context, e, WAR_TRANSITION_CAUSE_COMPLETION, WAR_STATE_RESULT_SUCCESS);
         wmv_settle(context, e);
     }
-    else u->frankAtkCheck = true;
+    else u->attackCheckpoint = true;
 }
 
 void wft_tickEnd(WarContext* context)

@@ -28,8 +28,8 @@ void wst_enterMiningState(WarContext* context, WarEntity* entity, WarState* stat
     assert(unit);
 
     s->miningTime = WMV_INSIDE_SECONDS;
-    s->frankTicks = 80;
-    s->frankLoaded = false;
+    s->ticksLeft = 80;
+    s->loadTaken = false;
     if (wai_drivesTicks(context))
     {
         wos_select(context, entity, 13, 80);
@@ -46,11 +46,11 @@ void wst_enterMiningState(WarContext* context, WarEntity* entity, WarState* stat
             if (level->levelInfo.ai && level->levelInfo.ai->alliance[unit->player] == 1 &&
                 record && (record->visibility & 0x100))
                 take = MIN(take, 5);
-            s->frankLoaded = true;
+            s->loadTaken = true;
             // (the walk's goal kept to come back to, unless the mine is spent)
-            unit->frankReturning = gu->amount > take;
-            unit->frankWorkSource = goldmine->id;
-            unit->frankWorkGold = true;
+            unit->returningToWork = gu->amount > take;
+            unit->workSourceId = goldmine->id;
+            unit->workIsGold = true;
             mine(context, goldmine, take);
         }
     }
@@ -107,10 +107,10 @@ void wst_updateMiningState(WarContext* context, WarEntity* entity, WarState* sta
     // if the unit was already mining, and the gold mine ran out of gold, then another unit previouly got all the remaining gold
     // so, this unit get nothing
     // (a worker that took its load stays its 80 ticks, the mine spent or not)
-    if (wai_drivesTicks(context) && s->frankLoaded && (!goldmine ||
+    if (wai_drivesTicks(context) && s->loadTaken && (!goldmine ||
         wst_isCollapsing(context, goldmine) || wst_isGoingToCollapse(context, goldmine)))
     {
-        if (s->frankTicks > 0) return;
+        if (s->ticksLeft > 0) return;
         unit->amount = UNIT_MAX_CARRY_GOLD;
         unit->resourceKind = WAR_RESOURCE_GOLD;
         vec2 tile = wu_getUnitCenterTile(context, entity);
@@ -143,14 +143,14 @@ void wst_updateMiningState(WarContext* context, WarEntity* entity, WarState* sta
     }
 
     // the AI's tick counts the 80 ticks (wst_frankInsideTick)
-    if (wai_drivesTicks(context)) s->miningTime = s->frankTicks > 0 ? 1.0f : -1.0f;
+    if (wai_drivesTicks(context)) s->miningTime = s->ticksLeft > 0 ? 1.0f : -1.0f;
     else
     s->miningTime -= context->gameDeltaTime;
 
     if (s->miningTime < 0)
     {
         // (taken on the way in; a load is a delivery of 100, 0x1CF54)
-        if (wai_drivesTicks(context)) unit->amount = s->frankLoaded ? UNIT_MAX_CARRY_GOLD : unit->amount;
+        if (wai_drivesTicks(context)) unit->amount = s->loadTaken ? UNIT_MAX_CARRY_GOLD : unit->amount;
         else
         unit->amount += mine(context, goldmine, UNIT_MAX_CARRY_GOLD);
         if (unit->amount > 0)

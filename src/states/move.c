@@ -53,12 +53,12 @@ WarStateMove* wst_createMoveState(WarContext* context, WarEntity* entity, s32 po
     state->waypointsIndex = 0;
     state->waypointsCount = count;
     state->checkForAttacks = checkForAttacks;
-    state->frankTarget = 0;
-    state->frankRange = 0;
-    state->frankDone = false;
-    state->frankEnter = 0;
-    state->frankNextOrder = 31;
-    state->frankEntered = false;
+    state->targetEntityId = 0;
+    state->targetRange = 0;
+    state->walkDone = false;
+    state->enterBuildingId = 0;
+    state->nextOrder = 31;
+    state->entered = false;
 
     return state;
 }

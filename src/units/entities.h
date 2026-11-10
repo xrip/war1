@@ -31,7 +31,7 @@ struct _WarWallPiece
     s32 maxhp;
     s32 tilex, tiley;
     u8 player;
-    bool frankLaid;   // in the terrain words (states/walk.c)
+    bool laidInTerrain; // in the terrain words (states/walk.c)
 };
 
 struct _WarRuinPiece
@@ -170,19 +170,19 @@ struct _WarUnitComponent
     bool wmvStepping;     // between tiles
     bool wmvGiveUp;       // the 15th hold-up: stop at the checkpoint
     s16 wmvTileX, wmvTileY;   // the tile it stands on (walks onto)
-    u8 frankDelay;        // the original's start delay, 0-7 ticks (0x2E7E4)
-    u16 frankOriginalSlot; // stable kernel record + 1; not a dense component index
-    u16 frankCorpseSlot; // visual corpse's retained record + 1
-    bool frankIdleOn;
-    u32 frankScriptTick;  // guards against executing two scripts in one game tick
-    s16 frankWorkX, frankWorkY;   // where its work is (the original's +0x3E: the mine's goal tile)
-    bool frankReturning;          // the original's +0x49 bit 8: it goes back there
-    WarEntityId frankWorkSource;  // the mine or forest there (+0x42)
-    bool frankWorkGold;
-    bool frankAtkOn;      // its attack script runs (states/fight.c)
-    bool frankAtkCheck;    // its attack script reached its checkpoint this tick (the look round)
-    bool frankScriptChanged; // an order selected a new script during this unit's turn (0x2ECFC)
-    bool frankOrderQueued;   // a pending command awaits the current script's checkpoint
+    u8 startDelay;        // the original's start delay, 0-7 ticks (0x2E7E4)
+    u16 kernelSlot;        // stable kernel record + 1; not a dense component index
+    u16 corpseSlot;      // visual corpse's retained record + 1
+    bool idleScriptOn;
+    u32 lastScriptTick;   // guards against executing two scripts in one game tick
+    s16 workX, workY;             // where its work is (the original's +0x3E: the mine's goal tile)
+    bool returningToWork;         // the original's +0x49 bit 8: it goes back there
+    WarEntityId workSourceId;     // the mine or forest there (+0x42)
+    bool workIsGold;
+    bool attackScriptOn;  // its attack script runs (states/fight.c)
+    bool attackCheckpoint; // its attack script reached its checkpoint this tick (the look round)
+    bool scriptChanged;      // an order selected a new script during this unit's turn (0x2ECFC)
+    bool orderQueued;        // a pending command awaits the current script's checkpoint
 };
 
 #define WAR_UNIT_COMPONENT_INIT_CONST(...) {                  \

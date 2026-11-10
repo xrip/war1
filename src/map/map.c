@@ -2988,11 +2988,11 @@ WarLevelResult checkObjectives(WarContext* context)
     if (map->objectivesTime <= 0)
     {
         // the original's checks, from the level's AI flags
-        WarLevelResult frankResult;
-        if (wai_checkObjectives(context, &frankResult))
+        WarLevelResult objectiveResult;
+        if (wai_checkObjectives(context, &objectiveResult))
         {
             map->objectivesTime = 1;
-            return frankResult;
+            return objectiveResult;
         }
         WarCampaignMapData data = wcamp_getCampaignData(
             wmap_getCampaignMapTypeByLevelInfoIndex(map->levelInfoIndex)
@@ -3113,9 +3113,9 @@ void wmap_updateMap(WarContext* context)
     updateSpells(context);
 
     // the fog at 10 Hz (upstream: every frame, all 4096 tiles twice)
-    if (context->realTime >= map->frankNextFoWTime)
+    if (context->realTime >= map->nextFogUpdateTime)
     {
-        map->frankNextFoWTime = context->realTime + 0.1;
+        map->nextFogUpdateTime = context->realTime + 0.1;
         updateFoW(context);
         determineFoWTypes(context);
     }

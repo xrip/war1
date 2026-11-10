@@ -80,8 +80,8 @@ void wst_updateFollowState(WarContext* context, WarEntity* entity, WarState* sta
     WarStateMove* moveState = wst_createMoveState(context, entity, 2, arrayArg(vec2, start, end), false);
     if (moveState)
     {
-        moveState->frankTarget = s->targetEntityId;
-        moveState->frankRange = s->targetDistance / MEGA_TILE_WIDTH;
+        moveState->targetEntityId = s->targetEntityId;
+        moveState->targetRange = s->targetDistance / MEGA_TILE_WIDTH;
     }
     wst_pushState(context, entity, (WarStateBase*)moveState, WAR_TRANSITION_CAUSE_COMPLETION);
 }

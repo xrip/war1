@@ -70,13 +70,13 @@ struct _WarStateMove
 
     // the original's walking (states/walk.c): a unit or
     // building to reach within a range in tiles (a follow's), and done
-    WarEntityId frankTarget;
-    s32 frankRange;
-    bool frankDone;
-    WarEntityId frankEnter;   // a building to step into (order 12)
-    u8 frankNextOrder;        // following order, or 31 (0x2EFC4)
-    bool frankEntered;
-    bool frankSelectAfterStep;   // begun mid-step: its walk order at the step's checkpoint
+    WarEntityId targetEntityId;
+    s32 targetRange;
+    bool walkDone;
+    WarEntityId enterBuildingId; // a building to step into (order 12)
+    u8 nextOrder;             // following order, or 31 (0x2EFC4)
+    bool entered;
+    bool selectAfterStep;        // begun mid-step: its walk order at the step's checkpoint
 };
 
 struct _WarStatePatrol
@@ -101,16 +101,16 @@ struct _WarStateAttack
     WarStateBase base;
     WarEntityId targetEntityId;
     vec2 targetPosition;
-    u8 frankOrder;       // fixed target 5, attack 6, auto-attack 8
-    bool frankPursue;    // command starts with move/attack rather than attack alone (0x2109C)
-    bool frankPrepared;  // the command's initial range resolution has run (0x22554)
+    u8 order;            // fixed target 5, attack 6, auto-attack 8
+    bool pursue;         // command starts with move/attack rather than attack alone (0x2109C)
+    bool prepared;       // the command's initial range resolution has run (0x22554)
 };
 
 struct _WarStateGold
 {
     WarStateBase base;
     WarEntityId goldmineId;
-    bool frankEntered;   // stepped into the mine
+    bool entered;        // stepped into the mine
 };
 
 struct _WarStateMining
@@ -118,8 +118,8 @@ struct _WarStateMining
     WarStateBase base;
     WarEntityId goldmineId;
     f32 miningTime;
-    s32 frankTicks;   // the original's 80 ticks inside, counted by the AI's tick
-    bool frankLoaded; // a load taken on the way in (0x1CFF4)
+    s32 ticksLeft;    // the original's 80 ticks inside, counted by the AI's tick
+    bool loadTaken;   // a load taken on the way in (0x1CFF4)
 };
 
 struct _WarStateWood
@@ -127,7 +127,7 @@ struct _WarStateWood
     WarStateBase base;
     WarEntityId forestId;
     vec2 position;
-    bool frankMoved;   // walked to the forest's edge once
+    bool walkedToEdge; // walked to the forest's edge once
 };
 
 struct _WarStateChopping
@@ -135,7 +135,7 @@ struct _WarStateChopping
     WarStateBase base;
     WarEntityId forestId;
     vec2 position;
-    s32 frankChops;   // the original's harvest count (+0x48)
+    s32 chops;        // the original's harvest count (+0x48)
 };
 
 struct _WarStateDeliver
@@ -143,8 +143,8 @@ struct _WarStateDeliver
     WarStateBase base;
     WarEntityId townHallId;
     bool insideBuilding;
-    bool frankEntered;   // stepped into the hall
-    s32 frankTicks;      // ticks left inside
+    bool entered;        // stepped into the hall
+    s32 ticksLeft;       // ticks left inside
     bool cycle;             // if true, resume gathering after delivery
     WarResourceKind sourceKind; // resource type to gather after delivery
     WarEntityId sourceId;   // goldmine or forest id for the cycle
@@ -174,8 +174,8 @@ struct _WarStateTrain
     bool outputCommitted;
     bool cancelled;
     bool alreadyRefunded;
-    s32 frankTicks;   // the original's ticks left (ai/ai.c's tick runs it)
-    s32 frankTotal;
+    s32 ticksLeft;    // the original's ticks left (ai/ai.c's tick runs it)
+    s32 ticksTotal;
 };
 
 struct _WarStateUpgrade
@@ -225,8 +225,8 @@ struct _WarStateCast
     WarSpellType spellType;
     WarEntityId  targetEntityId;
     vec2         targetPosition;
-    bool frankPrepared, frankRunning;
-    u8 frankNextOrder;
+    bool prepared, running;
+    u8 nextOrder;
 };
 
 struct _WarStateWait

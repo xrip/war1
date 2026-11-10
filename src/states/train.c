@@ -51,8 +51,8 @@ WarStateTrain* wst_createTrainState(WarContext* context, WarEntity* entity, WarU
     // first checkpoint 11 ticks on, then one every 9, two to each of the
     // unit's steps, the unit made at the second after the last: 18 a step
     // and 20 (war1's time here is 18 a step and 27)
-    state->frankTotal = MAX((s32)(buildTime / 0.03f + 0.5f) - 7, 1);
-    state->frankTicks = state->frankTotal;
+    state->ticksTotal = MAX((s32)(buildTime / 0.03f + 0.5f) - 7, 1);
+    state->ticksLeft = state->ticksTotal;
 
     return state;
 }
@@ -146,7 +146,7 @@ void wst_updateTrainState(WarContext* context, WarEntity* entity, WarState* stat
     if (wai_drivesTicks(context))
     {
         // the AI's tick counts it down (wst_frankTrainTick)
-        unit->buildPercent = PERCENTF01((f32)(s->frankTotal - s->frankTicks), (f32)s->frankTotal);
+        unit->buildPercent = PERCENTF01((f32)(s->ticksTotal - s->ticksLeft), (f32)s->ticksTotal);
         return;
     }
     f32 trainSpeed = context->gameDeltaTime;
@@ -222,8 +222,8 @@ void wst_frankTrainTick(WarContext* context, WarEntity* entity, WarStateBase* st
     if (s->cancelled || s->outputCommitted || !s->transactionApplied) return;
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
     WarMap* map = context->map;
-    if (map->hurryUp) s->frankTicks -= 3;   // (the original's cheat: a quarter of the steps)
-    if (--s->frankTicks > 0) return;
+    if (map->hurryUp) s->ticksLeft -= 3;    // (the original's cheat: a quarter of the steps)
+    if (--s->ticksLeft > 0) return;
 
     if (!wos_hasFreeRecord(context))
     {
@@ -248,7 +248,7 @@ void wst_frankTrainTick(WarContext* context, WarEntity* entity, WarStateBase* st
     if (!made)
     {
         // (no room for it: the next tick tries again)
-        s->frankTicks = 1;
+        s->ticksLeft = 1;
         return;
     }
     wu_setUnitCenterTile(context, made, wmv_exitTile(context, entity, unit->tilex, unit->tiley));

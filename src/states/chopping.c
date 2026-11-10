@@ -21,7 +21,7 @@ WarStateChopping* wst_createChoppingState(WarContext* context, WarEntity* entity
 
     state->forestId = forestId;
     state->position = position;
-    state->frankChops = 0;
+    state->chops = 0;
 
     return state;
 }
@@ -162,13 +162,13 @@ void wst_frankChopTick(WarContext* context, WarEntity* entity, WarStateBase* st)
     if (!unit) return;
     if (!st || st->type != WAR_STATE_CHOPPING)
     {
-        if (!st || st->type != WAR_STATE_ATTACK) unit->frankAtkOn = false;
+        if (!st || st->type != WAR_STATE_ATTACK) unit->attackScriptOn = false;
         return;
     }
-    if (!unit->frankAtkOn)
+    if (!unit->attackScriptOn)
     {
         if (!wos_select(context, entity, 10, 1)) return;
-        unit->frankAtkOn = true;
+        unit->attackScriptOn = true;
     }
     if (wos_tick(context, entity, NULL) != WOR_CHANGED) return;
     if (wmv_takePendingOrder(context, entity)) return;
@@ -194,16 +194,16 @@ void wst_frankChopCheckpoint(WarContext* context, WarEntity* entity, WarStateBas
         wmv_settle(context, entity);
         return;
     }
-    if (s->frankChops < 50) { s->frankChops++; return; }
+    if (s->chops < 50) { s->chops++; return; }
     // done: the tree is down, the wood goes home
     if (getenv("WAR_TURNDEBUG")) fprintf(stderr, "chopped by %d tree %d,%d amount %d\n", (s32)entity->id, (s32)treeTile.x, (s32)treeTile.y, tree ? tree->amount : -1);
     if (forest && tree) we_chopTree(context, forest, tree, TREE_MAX_WOOD);
     // (0x1CD50: carrying, and the tree kept to come back to)
-    unit->frankWorkX = (s16)treeTile.x;
-    unit->frankWorkY = (s16)treeTile.y;
-    unit->frankReturning = true;
-    unit->frankWorkSource = forest ? forest->id : 0;
-    unit->frankWorkGold = false;
+    unit->workX = (s16)treeTile.x;
+    unit->workY = (s16)treeTile.y;
+    unit->returningToWork = true;
+    unit->workSourceId = forest ? forest->id : 0;
+    unit->workIsGold = false;
     unit->amount = UNIT_MAX_CARRY_WOOD;
     unit->resourceKind = WAR_RESOURCE_WOOD;
     const WarWorkerData* workerData = wu_getWorkerData(unit->type);

@@ -1205,9 +1205,9 @@ WarEntity* we_createUnit(WarContext* context, const CreateUnitArgs* args)
             extern void wai_unitMade(WarContext* context, WarEntity* e);
             wai_unitMade(context, entity);
         }
-        made->frankDelay = (u8)(wrng_next() & 7);
-        made->frankScriptTick = UINT32_MAX;
-        if (original) original->wait += made->frankDelay;
+        made->startDelay = (u8)(wrng_next() & 7);
+        made->lastScriptTick = UINT32_MAX;
+        if (original) original->wait += made->startDelay;
         wai_targetsDirty = true;
     }
 
@@ -1849,7 +1849,7 @@ void renderWall(WarContext* context, WarEntity* entity)
             if (!frank_tileInView(context->map, piece->tilex, piece->tiley))
                 continue;
             // a laid wall is drawn by its map tile (wmv_layWall)
-            if (piece->frankLaid)
+            if (piece->laidInTerrain)
                 continue;
 
             // get the index of the tile in the spritesheet of the map,
@@ -3068,7 +3068,7 @@ void we_takeWallDamage(WarContext* context, WarEntity* entity, WarWallPiece* pie
     s32 damage = we_getTotalDamage(minDamage, rndDamage, 0);
     // a laid wall wears down in the terrain, as the original's
     // (0x105D0); its piece goes when its wall bit does
-    if (piece->frankLaid)
+    if (piece->laidInTerrain)
     {
         wmv_damageTerrain(context, piece->tilex, piece->tiley, (u8)CLAMP(damage, 0, 255));
         return;

@@ -202,7 +202,7 @@ void wai_noteAttacker(WarContext* context, WarEntity* target, WarEntity* attacke
     {
         info->attacker = attacker->id;
         WarOriginalUnit* original = wos_unit(context, target);
-        if (original) original->attacker = au->frankOriginalSlot;
+        if (original) original->attacker = au->kernelSlot;
     }
 }
 
@@ -365,7 +365,7 @@ static bool wai_order(WarContext* context, WarEntity* entity, WarStateBase* stat
          current->type == WAR_STATE_CAST))
     {
         WarUnitComponent* unit = we_getUnitComponent(context, entity);
-        if (unit) { unit->frankOrderQueued = true; return true; }
+        if (unit) { unit->orderQueued = true; return true; }
     }
     wmv_settle(context, entity);   // (the original takes the order at once)
     return true;
@@ -377,7 +377,7 @@ static bool wai_attackMove(WarContext* context, WarEntity* entity, s32 x, s32 y)
 {
     if (!wst_canSubmitTransition(context, entity, WAR_INTERRUPT_AI_ORDER)) return false;
     WarStateAttack* at = wst_createAttackState(context, entity, 0, wai_tileCenter(x, y));
-    if (at) at->frankOrder = 6;
+    if (at) at->order = 6;
     return wai_order(context, entity, (WarStateBase*)at);
 }
 
@@ -391,7 +391,7 @@ bool wai_attackTerrain(WarContext* context, WarEntity* entity, s32 x, s32 y)
         logError("original kernel: failed terrain-attack command for entity %u", entity->id);
         return false;
     }
-    attack->frankOrder = 7;
+    attack->order = 7;
     WarOriginalUnit* original = wos_unit(context, entity);
     if (original)
     {
@@ -427,8 +427,8 @@ static bool wai_attackAt(WarContext* context, WarEntity* entity, WarEntity* targ
         WarUnitComponent* u = we_getUnitComponent(context, entity);
         WarAIUnit* info = wai_unitInfo(context, entity);
         const bool computer = wai_isComputer(context, u->player) && (u->player != 0 || wai_autoHuman);
-        at->frankOrder = computer ? 6 : 8;
-        at->frankPursue = computer || (info && info->attacker && !wai_isCasterType(u->type) && wai_attackRange(u->type) <= 1);
+        at->order = computer ? 6 : 8;
+        at->pursue = computer || (info && info->attacker && !wai_isCasterType(u->type) && wai_attackRange(u->type) <= 1);
     }
     return wai_order(context, entity, (WarStateBase*)at);
 }
@@ -1152,14 +1152,14 @@ bool wai_validateCombatTarget(WarContext* context, WarEntity* entity)
     if (attack) attack->targetEntityId = target;
     if (move && attack)
     {
-        if (move->frankTarget && !target)
+        if (move->targetEntityId && !target)
         {
             WarOriginalUnit* original = wos_unit(context, entity);
             if (!original) return false;
             move->waypoints[move->waypointsIndex + 1] = wai_tileCenter(original->goalX, original->goalY);
-            move->frankRange = 0;
+            move->targetRange = 0;
         }
-        move->frankTarget = target;
+        move->targetEntityId = target;
     }
     return valid;
 }
@@ -1238,14 +1238,14 @@ static bool wai_humanAcquire(WarContext* context, WarEntity* e, WarUnitComponent
 static bool wai_retarget(WarContext* context, WarEntity* e, WarUnitComponent* u, WarAIUnit* info)
 {
     // once a blow cycle: the attack order runs at its script's checkpoint
-    const bool checkpoint = u->frankAtkCheck;
-    u->frankAtkCheck = false;
+    const bool checkpoint = u->attackCheckpoint;
+    u->attackCheckpoint = false;
     if (!checkpoint) return false;
     if (!wai_hasStats(u->type)) return false;
     WarStateBase* st = wst_getActiveState(context, e);
     if (!st || st->type != WAR_STATE_ATTACK) return false;
     WarStateAttack* at = (WarStateAttack*)st;
-    if (at->frankOrder == 7)
+    if (at->order == 7)
     {
         if (wai_answerAttacker(context, e, u, info, false)) return true;
         const vec2 tile = wmap_mapToTileCoordinatesV(at->targetPosition);
@@ -1262,18 +1262,18 @@ static bool wai_retarget(WarContext* context, WarEntity* e, WarUnitComponent* u,
     }
     WarEntity* current = we_getAttackTarget(context, e);
     if (!current || !wu_isUnit(current)) return false;
-    if (at->frankOrder != 5 && wai_humanAcquire(context, e, u, info, true)) return true;
+    if (at->order != 5 && wai_humanAcquire(context, e, u, info, true)) return true;
     const bool inRange = wu_unitInRange(context, e, current, wai_attackRange(u->type));
-    if (!inRange && (at->frankOrder != 8 || (!wai_isCasterType(u->type) && wai_attackRange(u->type) <= 1)))
+    if (!inRange && (at->order != 8 || (!wai_isCasterType(u->type) && wai_attackRange(u->type) <= 1)))
     {
-        if (at->frankOrder == 5)
+        if (at->order == 5)
             return wai_order(context, e, (WarStateBase*)wst_createAttackState(context, e, current->id,
                 wu_getUnitCenterPosition(context, current)));
         return wai_attack(context, e, current);
     }
     if (u->player == 0 && !wai_autoHuman && info->attacker == current->id)
         wai_alertFriends(context, e, u, current);   // (0x1143C)
-    if (at->frankOrder != 5 && (u->type == WAR_UNIT_CATAPULT_HUMANS || u->type == WAR_UNIT_CATAPULT_ORCS))
+    if (at->order != 5 && (u->type == WAR_UNIT_CATAPULT_HUMANS || u->type == WAR_UNIT_CATAPULT_ORCS))
     {
         WarOrderResult safety = wos_checkCatapult(context, e, current);
         if (safety == WOR_ERROR) return true;
@@ -1501,7 +1501,7 @@ static bool wai_raiseDead(WarContext* context, WarEntity* caster)
 {
     if (!wos_unit(context, caster)) return false;
     WarOriginalRuntime runtime = { .units = we_getEntityManager(context)->originalUnits };
-    const u16 corpse = wor_findCorpse(&runtime, we_getUnitComponent(context, caster)->frankOriginalSlot - 1);
+    const u16 corpse = wor_findCorpse(&runtime, we_getUnitComponent(context, caster)->kernelSlot - 1);
     if (!corpse) return false;
     const WarOriginalUnit* target = &runtime.units[corpse - 1];
     return wai_cast(context, caster, WAR_SPELL_RAISE_DEAD, NULL, wai_tileCenter(target->tileX, target->tileY));
@@ -1517,7 +1517,7 @@ static bool wai_summon(WarContext* context, WarEntity* e, WarSpellType spell)
         logError("original kernel: failed summoning state for entity %u", e->id);
         return false;
     }
-    cast->frankNextOrder = WOR_NONE;
+    cast->nextOrder = WOR_NONE;
     return wai_order(context, e, (WarStateBase*)cast);
 }
 
@@ -1678,8 +1678,8 @@ static bool wai_thinkDue(WarContext* context, WarEntity* e, WarAIUnit* info)
 
 static void wai_assignRole(WarContext* context, WarEntity* e, WarUnitComponent* u, WarAIUnit* info, bool levelStart)
 {
-    WarOriginalUnit* original = u->frankOriginalSlot
-        ? &we_getEntityManager(context)->originalUnits[u->frankOriginalSlot - 1] : NULL;
+    WarOriginalUnit* original = u->kernelSlot
+        ? &we_getEntityManager(context)->originalUnits[u->kernelSlot - 1] : NULL;
     memset(info, 0, sizeof(*info));
     info->id = e->id;
     info->route = -1;
@@ -2082,11 +2082,11 @@ static bool wai_idleCheckpoint(WarContext* context, WarEntity* e, WarUnitCompone
 {
     if (st && st->type != WAR_STATE_IDLE)
     {
-        u->frankIdleOn = false;
+        u->idleScriptOn = false;
         return false;
     }
     if (wu_isCorpseUnitType(u->type)) return false;
-    if (!u->frankIdleOn && !wos_select(context, e, u->player == 4 ? 29 : 2, 1)) return false;
+    if (!u->idleScriptOn && !wos_select(context, e, u->player == 4 ? 29 : 2, 1)) return false;
     // (just made, its first state not set yet: the start delay runs too)
     return wos_tick(context, e, NULL) == WOR_CHANGED;
 }
@@ -2115,7 +2115,7 @@ static void wai_workTick(WarContext* context, WarEntity* entity, WarStateBase* s
     WarStateBase* current = wst_getActiveState(context, entity);
     if (current && current->type == WAR_STATE_CHOPPING)
     {
-        we_getUnitComponent(context, entity)->frankAtkOn = true;
+        we_getUnitComponent(context, entity)->attackScriptOn = true;
         wst_frankChopCheckpoint(context, entity, current);
     }
 }
@@ -2183,7 +2183,7 @@ static void wai_step(WarContext* context, bool levelStart)
         WarUnitComponent* u = we_getUnitComponent(context, e);
         if (!u) continue;
         wai_currentUnit = e;
-        u->frankScriptChanged = false;
+        u->scriptChanged = false;
         // (the unit's state as its turn begins: a new order runs from the next tick)
         WarStateBase* st0 = wst_getActiveState(context, e);
         wst_frankTrainTick(context, e, st0);
@@ -2205,14 +2205,14 @@ static void wai_step(WarContext* context, bool levelStart)
         else if (st0 && (st0->type == WAR_STATE_MINING ||
             (st0->type == WAR_STATE_DELIVER && ((WarStateDeliver*)st0)->insideBuilding)))
         {
-            u->frankAtkOn = false;
-            u->frankIdleOn = false;
+            u->attackScriptOn = false;
+            u->idleScriptOn = false;
             wst_frankInsideTick(context, e, st0);
             wai_checkpoint = false;
         }
         else if (st0 && (st0->type == WAR_STATE_GOLD || st0->type == WAR_STATE_WOOD || st0->type == WAR_STATE_DELIVER))
         {
-            u->frankAtkOn = false;
+            u->attackScriptOn = false;
             wai_workTick(context, e, st0);
             wai_checkpoint = false;
         }
@@ -2408,11 +2408,11 @@ void wai_updateAIPlayers(WarContext* context)
                     fprintf(wf, "w %u t %.3f tile %d,%d state %d step %d path %d/%d blocks %d wait %d act %d/%d thp %d slot %d delay %d scriptTick %u mana %d\n", ticks, context->gameTime, x, y,
                             ws ? (s32)ws->type : -1, wu ? wu->wmvStepping : -1, wu ? wu->wmvPathIndex : -1, wu ? wu->wmvPath[0] : -1,
                             wu ? wu->wmvBlocks : -1,
-                            wu && wu->frankOriginalSlot ? we_getEntityManager(context)->originalUnits[wu->frankOriginalSlot - 1].wait : -1,
+                            wu && wu->kernelSlot ? we_getEntityManager(context)->originalUnits[wu->kernelSlot - 1].wait : -1,
                             wu ? (s32)wu->actionType : -1,
                             wu ? wu->actions[wu->actionType].stepIndex : -1, wtu ? wtu->hp : -1,
-                            wu ? (s32)wu->frankOriginalSlot - 1 : -1, wu ? wu->frankDelay : -1,
-                            wu ? wu->frankScriptTick : UINT32_MAX, wu ? wu->mana : -1);
+                            wu ? (s32)wu->kernelSlot - 1 : -1, wu ? wu->startDelay : -1,
+                            wu ? wu->lastScriptTick : UINT32_MAX, wu ? wu->mana : -1);
                     if (wt) fprintf(wf, "  target %d type %d player %d\n", (s32)wt->id, wtu ? wtu->type : -1, wtu ? wtu->player : -1);
                 }
             }

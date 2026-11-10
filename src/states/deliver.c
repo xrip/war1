@@ -16,7 +16,7 @@ WarStateDeliver* wst_createDeliverState(WarContext* context, WarEntity* entity, 
 
     state->townHallId = townHallId;
     state->insideBuilding = false;
-    state->frankEntered = false;
+    state->entered = false;
     state->cycle = false;
     state->sourceKind = WAR_RESOURCE_NONE;
     state->sourceId = 0;
@@ -75,15 +75,15 @@ void wst_updateDeliverState(WarContext* context, WarEntity* entity, WarState* st
             WarEntity* src = s->cycle && s->sourceKind == WAR_RESOURCE_GOLD ? we_findEntity(context, s->sourceId) : NULL;
             WarUnitComponent* su = src && wu_isUnit(src) ? we_getUnitComponent(context, src) : NULL;
             // (0x2E6B8: from the work it goes back to, else its own tile)
-            if (wai_drivesTicks(context) && unit->frankReturning) { tx = unit->frankWorkX; ty = unit->frankWorkY; }
-            else if (su) { tx = unit->frankWorkX; ty = unit->frankWorkY; }
+            if (wai_drivesTicks(context) && unit->returningToWork) { tx = unit->workX; ty = unit->workY; }
+            else if (su) { tx = unit->workX; ty = unit->workY; }
             else if (s->cycle && s->sourceKind == WAR_RESOURCE_WOOD)
             {
                 vec2 t = wmap_mapToTileCoordinatesV(s->sourcePosition);
                 tx = (s32)t.x; ty = (s32)t.y;
             }
             if (getenv("WAR_EXITDEBUG")) fprintf(stderr, "exit tick %u unit %u cycle %d kind %d src %u su %d work %d,%d corner %d,%d\n",
-                wrng_tick, (unsigned)entity->id, s->cycle, s->sourceKind, (unsigned)s->sourceId, su != NULL, unit->frankWorkX, unit->frankWorkY, tx, ty);
+                wrng_tick, (unsigned)entity->id, s->cycle, s->sourceKind, (unsigned)s->sourceId, su != NULL, unit->workX, unit->workY, tx, ty);
             wu_setUnitCenterTile(context, entity, wmv_exitTile(context, townHall, tx, ty));
         }
 
@@ -102,13 +102,13 @@ void wst_updateDeliverState(WarContext* context, WarEntity* entity, WarState* st
             {
                 return;
             }
-            WarEntity* source = unit->frankReturning ? we_findEntity(context, unit->frankWorkSource) : NULL;
+            WarEntity* source = unit->returningToWork ? we_findEntity(context, unit->workSourceId) : NULL;
             if (source && !s->cycle)
             {
-                WarStateBase* gather = unit->frankWorkGold
+                WarStateBase* gather = unit->workIsGold
                     ? (WarStateBase*)wst_createGatherGoldState(context, entity, source->id)
                     : (WarStateBase*)wst_createGatherWoodState(context, entity, source->id,
-                          wmap_tileToMapCoordinatesV(vec2i(unit->frankWorkX, unit->frankWorkY), true));
+                          wmap_tileToMapCoordinatesV(vec2i(unit->workX, unit->workY), true));
                 wst_replaceState(context, entity, gather, WAR_TRANSITION_CAUSE_COMPLETION);
                 return;
             }
@@ -140,9 +140,9 @@ void wst_updateDeliverState(WarContext* context, WarEntity* entity, WarState* st
     }
 
     // the original's worker steps into the hall first
-    if (!s->frankEntered)
+    if (!s->entered)
     {
-        s->frankEntered = true;
+        s->entered = true;
         wmv_enterBuilding(context, entity, townHall);
         return;
     }
@@ -172,7 +172,7 @@ void wst_updateDeliverState(WarContext* context, WarEntity* entity, WarState* st
 
     // simulate the time inside the townhall
     state->delay = WMV_INSIDE_SECONDS;
-    s->frankTicks = 80;
+    s->ticksLeft = 80;
     if (wai_drivesTicks(context)) state->delay = 1000.0f;   // (the AI's tick lets it out)
     if (wai_drivesTicks(context)) wos_select(context, entity, 13, 80);
 }
@@ -210,7 +210,7 @@ void wst_frankInsideTick(WarContext* context, WarEntity* entity, WarStateBase* s
         WarStateMining* s = (WarStateMining*)st;
         if (wos_tick(context, entity, NULL) == WOR_CHANGED)
         {
-            s->frankTicks = 0;
+            s->ticksLeft = 0;
             wos_workHandler(context, entity, st);
             wmv_settle(context, entity);   // (the next order at once: the walk to the hall)
         }
@@ -220,7 +220,7 @@ void wst_frankInsideTick(WarContext* context, WarEntity* entity, WarStateBase* s
         WarStateDeliver* s = (WarStateDeliver*)st;
         if (s->insideBuilding && wos_tick(context, entity, NULL) == WOR_CHANGED)
         {
-            s->frankTicks = 0;
+            s->ticksLeft = 0;
             st->delay = 0;
             st->nextUpdateGameTime = 0;
             wos_workHandler(context, entity, st);

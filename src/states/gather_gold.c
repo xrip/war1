@@ -15,9 +15,9 @@ WarStateGold* wst_createGatherGoldState(WarContext* context, WarEntity* entity, 
     }
 
     state->goldmineId = goldmineId;
-    state->frankEntered = false;
+    state->entered = false;
     // (a gather command sets the work bits afresh, 0x21184)
-    we_getUnitComponent(context, entity)->frankReturning = false;
+    we_getUnitComponent(context, entity)->returningToWork = false;
 
     return state;
 }
@@ -62,14 +62,14 @@ void wst_updateGatherGoldState(WarContext* context, WarEntity* entity, WarState*
     }
 
     // the original's worker steps into the mine first
-    if (!s->frankEntered)
+    if (!s->entered)
     {
-        s->frankEntered = true;
+        s->entered = true;
         {
             // (0x1CE5B: the walk's goal, kept to come back to)
             vec2 goal = wmv_buildingGoal(context, entity, goldmine);
-            unit->frankWorkX = (s16)goal.x;
-            unit->frankWorkY = (s16)goal.y;
+            unit->workX = (s16)goal.x;
+            unit->workY = (s16)goal.y;
         }
         wmv_enterBuilding(context, entity, goldmine);
         return;
