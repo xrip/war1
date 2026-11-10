@@ -1,6 +1,6 @@
 // frank-war1 — what the game needs from a platform. platform/sdl/sdl.c
 // builds the SDL3 subset on top of this; platform/host.c (and the board's
-// plat_frank.c on the main branch) implement it.
+// plat_frank.c, commit c304e04) implement it.
 //
 // Copyright (c) 2026 Mikhail Matveev <xtreme@rh1.tech>
 // SPDX-License-Identifier: Zlib

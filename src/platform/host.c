@@ -10,7 +10,7 @@
 //                  checks it is deterministic)
 //   --record FILE  records what you do in the script format, on the fixed
 //                  step with a state hash every second: the board replays it
-//                  (tools/replay.sh, main branch)
+//                  (tools/replay.sh, commit c304e04)
 //   --wav FILE     records the game's audio (headless: freq/60 samples a frame)
 //   --agent DIR    a player outside the game (agent_stop), on the fixed step
 //   --hash-print   prints each script hash check's state hash
