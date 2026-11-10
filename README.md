@@ -1,4 +1,4 @@
-# frank-war1
+# war1
 
 **Warcraft: Orcs & Humans on the desktop:** the game on Windows (and
 macOS/Linux) with SDL3. The RP2350 board firmware is in the git history, up
