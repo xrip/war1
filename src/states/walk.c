@@ -25,7 +25,6 @@
 // Copyright (c) 2026 Mikhail Matveev <xtreme@rh1.tech>
 // SPDX-License-Identifier: Zlib
 
-#include <float.h>
 #include <string.h>
 #include "state_machine.h"
 #include "units/actions.h"
@@ -713,7 +712,7 @@ void wmv_settle(WarContext* context, WarEntity* e)
                 wst_updateAttackState(context, e, st);
                 break;
             case WAR_STATE_CAST:
-                if (!wst_frankSpellOrder(((WarStateCast*)st)->spellType)) return;
+                if (!wst_spellOrder(((WarStateCast*)st)->spellType)) return;
                 wst_updateCastState(context, e, st);
                 break;
             case WAR_STATE_GOLD:

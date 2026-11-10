@@ -77,7 +77,7 @@ void wst_updateChoppingState(WarContext* context, WarEntity* entity, WarState* s
     }
 
     WarUnitAction* action = &unit->actions[unit->actionType];
-    // the AI's tick counts the strokes (wst_frankChopTick)
+    // the AI's tick counts the strokes (wst_chopTick)
     if (wai_drivesTicks(context)) action->lastActionStep = WAR_ACTION_STEP_NONE;
     if (action->lastActionStep == WAR_ACTION_STEP_ATTACK)
     {
@@ -156,7 +156,7 @@ void wst_updateChoppingStates(WarContext* context)
 // the original's harvest order (0x1CD50) at each checkpoint of the
 // worker's work script: 50 strokes counted, and at the next checkpoint the
 // tree is down and the load (100) goes home.
-void wst_frankChopTick(WarContext* context, WarEntity* entity, WarStateBase* st)
+void wst_chopTick(WarContext* context, WarEntity* entity, WarStateBase* st)
 {
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
     if (!unit) return;
@@ -172,10 +172,10 @@ void wst_frankChopTick(WarContext* context, WarEntity* entity, WarStateBase* st)
     }
     if (wos_tick(context, entity, NULL) != WOR_CHANGED) return;
     if (wmv_takePendingOrder(context, entity)) return;
-    wst_frankChopCheckpoint(context, entity, st);
+    wst_chopCheckpoint(context, entity, st);
 }
 
-void wst_frankChopCheckpoint(WarContext* context, WarEntity* entity, WarStateBase* st)
+void wst_chopCheckpoint(WarContext* context, WarEntity* entity, WarStateBase* st)
 {
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
     WarStateChopping* s = (WarStateChopping*)st;

@@ -197,12 +197,12 @@ bool SDL_RenderTextureRotated(SDL_Renderer *r, SDL_Texture *t, const SDL_FRect *
 /* Not in SDL3: an 8-bit texture's RGB565 palette (index 0 is
  * transparent), and a texture whose source coordinates are `div` times its
  * pixels (the font atlases: war1 measures glyphs in 8x atlas units). */
-void FRANK_SetTextureLut(SDL_Texture *t, const uint16_t *lut);
-void FRANK_SetTextureSourceDiv(SDL_Texture *t, int div);
+void FSDL_SetTextureLut(SDL_Texture *t, const uint16_t *lut);
+void FSDL_SetTextureSourceDiv(SDL_Texture *t, int div);
 /* Crop: the pixels passed to SDL_UpdateTexture cover only (x, y, w, h) of
  * the texture; everything else is transparent. */
-void FRANK_SetTextureCrop(SDL_Texture *t, int x, int y, int w, int h);
-uint16_t FRANK_RGB565(uint8_t r, uint8_t g, uint8_t b);
+void FSDL_SetTextureCrop(SDL_Texture *t, int x, int y, int w, int h);
+uint16_t FSDL_RGB565(uint8_t r, uint8_t g, uint8_t b);
 
 /* ---- events ---- */
 typedef uint32_t SDL_Keycode;
@@ -220,7 +220,6 @@ typedef enum {
 } SDL_EventType;
 
 #define SDL_BUTTON_LEFT   1
-#define SDL_BUTTON_MIDDLE 2
 #define SDL_BUTTON_RIGHT  3
 
 typedef struct { uint32_t type; uint64_t timestamp; SDL_Keycode key; SDL_Keymod mod; bool down; bool repeat; } SDL_KeyboardEvent;

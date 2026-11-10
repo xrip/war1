@@ -14,9 +14,7 @@
 #include "audio/audio.h"
 
 #define readu8(arr, index) (arr[index])
-#define reads16(arr, index) (*(s16*)((arr) + (index)))
 #define readu16(arr, index) (*(u16*)((arr) + (index)))
-#define reads32(arr, index) (*(s32*)((arr) + (index)))
 #define readu32(arr, index) (*(u32*)((arr) + (index)))
 
 // 8-bit pixels stay 8-bit; each (palette1, palette2) pair becomes one
@@ -49,7 +47,7 @@ static const u16* wres_getPaletteLut(WarContext* context, s32 palette1Index, s32
     u8 paletteData[PALETTE_LENGTH];
     wres_getPalette(context, palette1Index, palette2Index, paletteData);
     for (s32 c = 0; c < 256; c++)
-        entry->lut[c] = FRANK_RGB565(paletteData[c * 3 + 0], paletteData[c * 3 + 1], paletteData[c * 3 + 2]);
+        entry->lut[c] = FSDL_RGB565(paletteData[c * 3 + 0], paletteData[c * 3 + 1], paletteData[c * 3 + 2]);
 
     return entry->lut;
 }
@@ -479,7 +477,7 @@ s32 wres_loadStartWalls(WarResource* resource, WarRawResource* rawResource, s32 
 // (offsets, ending in 0xFFFF; an empty list ends the groups) and the game
 // takes one of them at random: its units, roads and walls. war1 took the
 // first alternative of the first group. Done again on every start.
-void wres_frankPickStartUnits(WarContext* context, WarResource* resource, s32 index)
+void wres_pickStartUnits(WarContext* context, WarResource* resource, s32 index)
 {
     if (resource->levelInfo.customMap || !context->warFile) return;
     WarRawResource* raw = &context->warFile->resources[index];

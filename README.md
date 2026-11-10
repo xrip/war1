@@ -36,19 +36,15 @@ game's `DATA.WAR`.
 
 ## Building
 
-The scripts run CMake (`CMakeLists.txt`) into `build/host`; CLion or any
-CMake IDE opens the project as it is.
+`scripts/build.sh` runs CMake (`CMakeLists.txt`) with Ninja into
+`build/host`; CLion or any CMake IDE opens the project as it is. It needs
+CMake, Ninja and SDL3; `CC` picks the compiler.
 
-Windows (CMake, Ninja, MinGW-w64 with posix threads, SDL3 mingw devel):
-
-    scoop install mingw   # or any gcc (posix-seh); set GCC=/path/to/gcc.exe
-    # unpack https://github.com/libsdl-org/SDL/releases/.../SDL3-devel-<ver>-mingw.zip
-    # into third_party/sdl3 (or set SDL=<dir>/x86_64-w64-mingw32)
-    scripts/build-win.sh  # -> build/host/war1-host.exe, SDL3.dll copied next to it
-
-macOS / Linux (CMake, clang, SDL3):
-
-    scripts/build.sh      # -> build/host/war1-host
+    # Windows: MinGW-w64 with posix threads (scoop's is the default) and
+    # https://github.com/libsdl-org/SDL/releases/.../SDL3-devel-<ver>-mingw.zip
+    # unpacked into third_party/sdl3 (or on CMAKE_PREFIX_PATH)
+    scoop install mingw
+    scripts/build.sh      # -> build/host/war1-host[.exe] (+ SDL3.dll on Windows)
 
 ## Game data
 

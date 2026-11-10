@@ -47,10 +47,6 @@ struct _WarTree
     s32 amount;
 };
 
-#define WarRoadPieceEmpty (WarRoadPiece){0}
-#define WarWallPieceEmpty (WarWallPiece){0}
-#define WarRuinPieceEmpty (WarRuinPiece){0}
-#define WarTreeEmpty (WarTree){0}
 
 #define createRoadPiece(x, y, player) ((WarRoadPiece){0, (x), (y), (u8)(player)})
 #define createWallPiece(x, y, player) ((WarWallPiece){0, 0, 0, (x), (y), (u8)(player)})
@@ -307,7 +303,6 @@ struct _WarTextComponent
     .multiline       = false,                             \
     __VA_ARGS__                                           \
 }
-#define WAR_TEXT_COMPONENT_INIT(...) ((WarTextComponent)WAR_TEXT_COMPONENT_INIT_CONST(__VA_ARGS__))
 
 struct _WarRectComponent
 {
@@ -320,7 +315,6 @@ struct _WarRectComponent
     .color = {0},                             \
     __VA_ARGS__                               \
 }
-#define WAR_RECT_COMPONENT_INIT(...) ((WarRectComponent)WAR_RECT_COMPONENT_INIT_CONST(__VA_ARGS__))
 
 struct _WarButtonComponent
 {
@@ -353,7 +347,6 @@ struct _WarButtonComponent
     .clickHandler   = NULL,                    \
     __VA_ARGS__                                \
 }
-#define WAR_BUTTON_COMPONENT_INIT(...) ((WarButtonComponent)WAR_BUTTON_COMPONENT_INIT_CONST(__VA_ARGS__))
 
 struct _WarCursorComponent
 {
@@ -366,7 +359,6 @@ struct _WarCursorComponent
     .hot  = {0},                                \
     __VA_ARGS__                                 \
 }
-#define WAR_CURSOR_COMPONENT_INIT(...) ((WarCursorComponent)WAR_CURSOR_COMPONENT_INIT_CONST(__VA_ARGS__))
 
 struct _WarProjectileComponent
 {

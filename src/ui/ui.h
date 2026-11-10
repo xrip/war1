@@ -149,7 +149,6 @@ typedef struct
     .scale = {1, 1}, \
     __VA_ARGS__ \
 }
-#define CREATE_UI_CURSOR_ARGS_INIT(...) (&(CreateUICursorArgs)CREATE_UI_CURSOR_ARGS_INIT_CONST(__VA_ARGS__))
 
 #define CREATE_UI_TEXT_BUTTON_ARGS_INIT_CONST(...) { \
     .scale                 = {1, 1}, \

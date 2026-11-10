@@ -76,18 +76,12 @@
 #include "game/game.h"
 #include "core/rng.h"
 
-// the zones are the whole budget (PSRAM on the board); the platform's
-// main() calls war_main()
-#define PERM_SIZE ((size_t)WAR_PERM_SIZE)
-#define FRAME_SIZE ((size_t)WAR_FRAME_SIZE)
-#define AUDIO_SIZE ((size_t)WAR_AUDIO_SIZE)
-#define main war_main
-
 void* war_context; // for the platform's diagnostics
 
-int main(int argc, char** argv)
+int war_main(int argc, char** argv) // the platform's main() calls it
 {
-    if (!wm_allocInit(PERM_SIZE, FRAME_SIZE, AUDIO_SIZE))
+    // the zones are the whole budget (PSRAM on the board)
+    if (!wm_allocInit(WAR_PERM_SIZE, WAR_FRAME_SIZE, WAR_AUDIO_SIZE))
     {
         logError("Failed to initialize memory allocators!");
         return -1;

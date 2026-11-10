@@ -48,7 +48,7 @@ void wst_resumeAttackState(WarContext* context, WarEntity* entity, WarStateBase*
 
 // Resolve the command's move/action pair once; arriving later selects the
 // action script without executing its handler at the same checkpoint (0x22554, 0x2EE9C).
-static void wst_frankPrepareAttack(WarContext* context, WarEntity* entity, WarStateAttack* state)
+static void wst_prepareAttack(WarContext* context, WarEntity* entity, WarStateAttack* state)
 {
     state->prepared = true;
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
@@ -91,7 +91,7 @@ void wst_updateAttackState(WarContext* context, WarEntity* entity, WarState* sta
 
     if (wai_drivesTicks(context))
     {
-        if (!s->prepared) wst_frankPrepareAttack(context, entity, s);
+        if (!s->prepared) wst_prepareAttack(context, entity, s);
         return;
     }
     WarMap* map = context->map;

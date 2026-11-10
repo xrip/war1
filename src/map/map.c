@@ -1173,9 +1173,9 @@ void wmap_enterMap(WarContext* context)
     {
         // the original's random numbers from the level's start, and
         // its random choice of the level's unit groups
-        extern void wres_frankPickStartUnits(WarContext* context, WarResource* resource, s32 index);
+        extern void wres_pickStartUnits(WarContext* context, WarResource* resource, s32 index);
         wrng_levelSeed((u32)SDL_rand(0x7FFFFFFF));
-        wres_frankPickStartUnits(context, levelInfo, levelInfoIndex);
+        wres_pickStartUnits(context, levelInfo, levelInfoIndex);
     }
 
     map->playing = true;

@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$(pwd -P)"
-if [ ! -f build/host/CMakeCache.txt ]; then echo "run scripts/build.sh (or build-win.sh) first" >&2; exit 2; fi
+if [ ! -f build/host/CMakeCache.txt ]; then echo "run scripts/build.sh first" >&2; exit 2; fi
 cmake --build build/host --target test-live-spells > build/host/live-spells-build.log 2>&1
 input="$(mktemp "$ROOT/build/host/live-spells.XXXXXX")"
 trap 'rm -f "$input"' EXIT

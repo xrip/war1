@@ -5,7 +5,6 @@
 
 #define STATUS_TEXT_MAX_LENGTH 40
 #define CHEAT_TEXT_MAX_LENGTH 32
-#define CHEAT_FEEDBACK_TEXT_MAX_LENGTH 50
 
 struct _WarFlashStatus
 {
@@ -47,7 +46,6 @@ struct _WarCheatDescriptor
 
 void wcheat_applyCheat(WarContext* context, StringView text);
 
-#define cheatsEnabledAndVisible(mapOrScene) ((mapOrScene)->cheatStatus.enabled && (mapOrScene)->cheatStatus.visible)
 
 // original cheats
 void wcheat_applyGoldCheat(WarContext* context, StringView argument);

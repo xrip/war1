@@ -1668,7 +1668,6 @@ static void wai_pickRoute(WarContext* context, WarEntity* e, WarAIUnit* info)
 // The original runs an idle unit's think once every 9 game ticks (its idle
 // script's cadence), and on the first tick it is idle again; production
 // countdowns and all of a unit's decisions go by thinks.
-#define WAI_THINK_TICKS 9
 static bool wai_checkpoint;
 static bool wai_thinkDue(WarContext* context, WarEntity* e, WarAIUnit* info)
 {
@@ -2116,7 +2115,7 @@ static void wai_workTick(WarContext* context, WarEntity* entity, WarStateBase* s
     if (current && current->type == WAR_STATE_CHOPPING)
     {
         we_getUnitComponent(context, entity)->attackScriptOn = true;
-        wst_frankChopCheckpoint(context, entity, current);
+        wst_chopCheckpoint(context, entity, current);
     }
 }
 
@@ -2186,7 +2185,7 @@ static void wai_step(WarContext* context, bool levelStart)
         u->scriptChanged = false;
         // (the unit's state as its turn begins: a new order runs from the next tick)
         WarStateBase* st0 = wst_getActiveState(context, e);
-        wst_frankTrainTick(context, e, st0);
+        wst_trainTick(context, e, st0);
         if (u->wmvStepping && st0 && st0->type != WAR_STATE_MOVE)
         {
             // An order given mid-step (a spell, work, a stop) waits for the
@@ -2197,9 +2196,9 @@ static void wai_step(WarContext* context, bool levelStart)
             wai_checkpoint = false;
         }
         else if (st0 && st0->type == WAR_STATE_CAST &&
-            wst_frankSpellOrder(((WarStateCast*)st0)->spellType))
+            wst_spellOrder(((WarStateCast*)st0)->spellType))
         {
-            wst_frankCastTick(context, e, st0);
+            wst_castTick(context, e, st0);
             wai_checkpoint = false;
         }
         else if (st0 && (st0->type == WAR_STATE_MINING ||
@@ -2207,7 +2206,7 @@ static void wai_step(WarContext* context, bool levelStart)
         {
             u->attackScriptOn = false;
             u->idleScriptOn = false;
-            wst_frankInsideTick(context, e, st0);
+            wst_insideTick(context, e, st0);
             wai_checkpoint = false;
         }
         else if (st0 && (st0->type == WAR_STATE_GOLD || st0->type == WAR_STATE_WOOD || st0->type == WAR_STATE_DELIVER))
@@ -2218,7 +2217,7 @@ static void wai_step(WarContext* context, bool levelStart)
         }
         else
         {
-            wst_frankChopTick(context, e, st0);
+            wst_chopTick(context, e, st0);
             wmv_unitTick(context, e, st0);
             wft_unitTick(context, e, wst_getActiveState(context, e));
             wai_checkpoint = wai_idleCheckpoint(context, e, u, st0);

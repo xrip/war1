@@ -1763,7 +1763,7 @@ void renderImage(WarContext* context, WarEntity* entity)
 
 // is map tile (x, y) within a tile of the camera's view? (roads,
 // walls, ruins and trees were all drawn, the whole map, every frame)
-static bool frank_tileInView(WarMap* map, s32 x, s32 y)
+static bool isTileInView(WarMap* map, s32 x, s32 y)
 {
     const rect v = map->camera.viewport;
     const s32 x0 = (s32)(v.x / MEGA_TILE_WIDTH) - 1, y0 = (s32)(v.y / MEGA_TILE_HEIGHT) - 1;
@@ -1793,7 +1793,7 @@ void renderRoad(WarContext* context, WarEntity* entity)
         WarRoadPieceList* pieces = &road->pieces;
         for (s32 i = 0; i < pieces->count; i++)
         {
-            if (!frank_tileInView(context->map, pieces->items[i].tilex, pieces->items[i].tiley))
+            if (!isTileInView(context->map, pieces->items[i].tilex, pieces->items[i].tiley))
                 continue;
             // get the index of the tile in the spritesheet of the map,
             // corresponding to the current tileset type (forest, swamp)
@@ -1846,7 +1846,7 @@ void renderWall(WarContext* context, WarEntity* entity)
         for (s32 i = 0; i < pieces->count; i++)
         {
             WarWallPiece* piece = &pieces->items[i];
-            if (!frank_tileInView(context->map, piece->tilex, piece->tiley))
+            if (!isTileInView(context->map, piece->tilex, piece->tiley))
                 continue;
             // a laid wall is drawn by its map tile (wmv_layWall)
             if (piece->laidInTerrain)
@@ -1920,7 +1920,7 @@ void renderRuin(WarContext* context, WarEntity* entity)
             WarRuinPiece* piece = &pieces->items[i];
             if (piece->type == WAR_RUIN_PIECE_NONE)
                 continue;
-            if (!frank_tileInView(context->map, piece->tilex, piece->tiley))
+            if (!isTileInView(context->map, piece->tilex, piece->tiley))
                 continue;
 
             // get the index of the tile in the spritesheet of the map,
@@ -1972,7 +1972,7 @@ void renderForest(WarContext* context, WarEntity* entity)
 
             if (tree->type == WAR_TREE_NONE)
                 continue;
-            if (!frank_tileInView(context->map, tree->tilex, tree->tiley))
+            if (!isTileInView(context->map, tree->tilex, tree->tiley))
                 continue;
 
             const WarTreeData* data = wu_getTreeData(tree->type);

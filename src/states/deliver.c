@@ -202,7 +202,7 @@ void wst_updateDeliverStates(WarContext* context)
 
 // a worker's 80 ticks inside a mine or a hall, in its turn of the
 // unit table; it comes out on the tick (the original's order 13, 0x1D1A0).
-void wst_frankInsideTick(WarContext* context, WarEntity* entity, WarStateBase* st)
+void wst_insideTick(WarContext* context, WarEntity* entity, WarStateBase* st)
 {
     if (!st) return;
     if (st->type == WAR_STATE_MINING)

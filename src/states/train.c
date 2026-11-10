@@ -145,7 +145,7 @@ void wst_updateTrainState(WarContext* context, WarEntity* entity, WarState* stat
 
     if (wai_drivesTicks(context))
     {
-        // the AI's tick counts it down (wst_frankTrainTick)
+        // the AI's tick counts it down (wst_trainTick)
         unit->buildPercent = PERCENTF01((f32)(s->ticksTotal - s->ticksLeft), (f32)s->ticksTotal);
         return;
     }
@@ -215,7 +215,7 @@ void wst_updateTrainStates(WarContext* context)
 // one tick of training, in the building's turn of the unit table;
 // the unit comes out on the first free tile round the building from its
 // top left corner (0x2E740).
-void wst_frankTrainTick(WarContext* context, WarEntity* entity, WarStateBase* st)
+void wst_trainTick(WarContext* context, WarEntity* entity, WarStateBase* st)
 {
     if (!st || st->type != WAR_STATE_TRAIN) return;
     WarStateTrain* s = (WarStateTrain*)st;

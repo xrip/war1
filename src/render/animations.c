@@ -7,7 +7,6 @@
 #include "data/resources.h"
 #include "core/collections.h"
 
-#define ANIM_NAME_MAX_LENGTH 50
 
 shlDefineList(WarSpriteAnimationList, WarSpriteAnimation)
 

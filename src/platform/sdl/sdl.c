@@ -341,7 +341,7 @@ struct SDL_Texture {
     bool opaque;
 };
 
-uint16_t FRANK_RGB565(uint8_t r, uint8_t g, uint8_t b) {
+uint16_t FSDL_RGB565(uint8_t r, uint8_t g, uint8_t b) {
     return (uint16_t)((r >> 3) << 11 | (g >> 2) << 5 | (b >> 3));
 }
 
@@ -369,7 +369,7 @@ bool SDL_SetRenderLogicalPresentation(SDL_Renderer *r, int w, int h, SDL_Rendere
 
 bool SDL_SetRenderDrawColor(SDL_Renderer *r, uint8_t red, uint8_t g, uint8_t b, uint8_t a) {
     r->r = red; r->g = g; r->b = b; r->a = a;
-    r->c565 = FRANK_RGB565(red, g, b);
+    r->c565 = FSDL_RGB565(red, g, b);
     return true;
 }
 
@@ -477,16 +477,16 @@ bool SDL_UpdateTexture(SDL_Texture *t, const void *rect, const void *pixels, int
         for (int i = 0; i < n && t->opaque; i++) t->opaque = q[i * 4 + 3] == 255;
         if (t->opaque && !t->px565) t->px565 = (uint16_t *)malloc((size_t)n * 2);
         if (t->opaque && t->px565)
-            for (int i = 0; i < n; i++, q += 4) t->px565[i] = FRANK_RGB565(q[0], q[1], q[2]);
+            for (int i = 0; i < n; i++, q += 4) t->px565[i] = FSDL_RGB565(q[0], q[1], q[2]);
         else
             t->opaque = false;
     }
     return true;
 }
 
-void FRANK_SetTextureLut(SDL_Texture *t, const uint16_t *lut) { t->lut = lut; }
-void FRANK_SetTextureSourceDiv(SDL_Texture *t, int div) { t->div = div > 0 ? div : 1; }
-void FRANK_SetTextureCrop(SDL_Texture *t, int x, int y, int w, int h) {
+void FSDL_SetTextureLut(SDL_Texture *t, const uint16_t *lut) { t->lut = lut; }
+void FSDL_SetTextureSourceDiv(SDL_Texture *t, int div) { t->div = div > 0 ? div : 1; }
+void FSDL_SetTextureCrop(SDL_Texture *t, int x, int y, int w, int h) {
     t->cx = x; t->cy = y; t->cw = w; t->ch = h;
 }
 
@@ -496,7 +496,7 @@ bool SDL_SetTextureAlphaMod(SDL_Texture *t, uint8_t a) { t->alpha = a; return tr
 
 bool SDL_SetTextureColorMod(SDL_Texture *t, uint8_t r, uint8_t g, uint8_t b) {
     t->mr = r; t->mg = g; t->mb = b;
-    t->tint = FRANK_RGB565(r, g, b);
+    t->tint = FSDL_RGB565(r, g, b);
     return true;
 }
 
@@ -666,8 +666,8 @@ static FSDL_HOT bool render_texture(SDL_Renderer *r, SDL_Texture *t, const SDL_F
                 if (q[3] == 0) break;
                 uint32_t a = (q[3] * (uint32_t)t->alpha + 127) / 255;
                 uint16_t c = t->mr == 255 && t->mg == 255 && t->mb == 255
-                    ? FRANK_RGB565(q[0], q[1], q[2])
-                    : FRANK_RGB565((uint8_t)(q[0] * t->mr / 255), (uint8_t)(q[1] * t->mg / 255),
+                    ? FSDL_RGB565(q[0], q[1], q[2])
+                    : FSDL_RGB565((uint8_t)(q[0] * t->mr / 255), (uint8_t)(q[1] * t->mg / 255),
                                    (uint8_t)(q[2] * t->mb / 255));
                 put(&out[x], c, (a + 4u) >> 3);
                 break;

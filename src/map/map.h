@@ -29,7 +29,6 @@
     ((player)->upgrades[(upgrade)/2].allowed = (value))
 
 #define imageResourceRefFromPlayer(player, hIdx, oIdx) imageResourceRef((player)->race == WAR_RACE_HUMANS ? (hIdx) : (oIdx))
-#define spriteResourceRefFromPlayer(player, hIdx, oIdx, spriteIndex) wspr_createSpriteResourceRef((player)->race == WAR_RACE_HUMANS ? (hIdx) : (oIdx), 1, arrayArg(s32, (spriteIndex)))
 
 // Reserved resource indices for editor-loaded custom .w1m maps.
 // These are above the normal DATA.WAR range (0-582).

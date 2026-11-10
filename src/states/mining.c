@@ -142,7 +142,7 @@ void wst_updateMiningState(WarContext* context, WarEntity* entity, WarState* sta
         return;
     }
 
-    // the AI's tick counts the 80 ticks (wst_frankInsideTick)
+    // the AI's tick counts the 80 ticks (wst_insideTick)
     if (wai_drivesTicks(context)) s->miningTime = s->ticksLeft > 0 ? 1.0f : -1.0f;
     else
     s->miningTime -= context->gameDeltaTime;

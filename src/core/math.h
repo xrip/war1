@@ -22,7 +22,6 @@
 #define PI 3.14159265358979323846264338327f
 
 #define RAD2DEG(x) ((x) * 180 / PI)
-#define DEG2RAD(x) ((x) * PI / 180)
 
 /*
  * vec2 types and functions
@@ -34,13 +33,9 @@ typedef struct
 
 #define VEC2_ZERO ((vec2){0.0f, 0.0f})
 #define VEC2_ONE ((vec2){1.0f, 1.0f})
-#define VEC2_LEFT ((vec2){-1.0f, 0.0 })
-#define VEC2_UP ((vec2){0.0f, -1.0 })
 #define VEC2_RIGHT ((vec2){1.0f, 0.0f})
-#define VEC2_DOWN ((vec2){0.0f, 1.0f})
 
 #define VEC2_IS_ZERO(v) ((v).x == 0.0f && (v).y == 0.0f)
-#define VEC2_IS_ONE(v) ((v).x == 1.0f && (v).y == 1.0f)
 
 vec2 vec2f(f32 x, f32 y);
 vec2 vec2i(s32 x, s32 y);
@@ -72,10 +67,6 @@ typedef struct
 
 #define RECT_EMPTY ((rect){0.0f, 0.0f, 0.0f, 0.0f})
 #define RECT_TOP_LEFT(r) vec2f(r.x, r.y)
-#define RECT_TOP_RIGHT(r) vec2f(r.x + r.width, r.y)
-#define RECT_BOTTOM_LEFT(r) vec2f(r.x, r.y + r.height)
-#define RECT_BOTTOM_RIGHT(r) vec2f(r.x + r.width, r.y + r.height)
-#define RECT_SIZE(r) vec2f(r.width, r.height)
 
 rect rectf(f32 x, f32 y, f32 width, f32 height);
 rect recti(s32 x, s32 y, s32 width, s32 height);

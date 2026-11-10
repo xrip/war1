@@ -33,7 +33,7 @@ WarStateCast* wst_createCastState(WarContext* context, WarEntity* entity, WarSpe
 
 // Spells keep command entry, script action and checkpoint completion
 // separate (0x21258, 0x14140, 0x27BCC).
-u8 wst_frankSpellOrder(WarSpellType type)
+u8 wst_spellOrder(WarSpellType type)
 {
     switch (type)
     {
@@ -51,7 +51,7 @@ u8 wst_frankSpellOrder(WarSpellType type)
     }
 }
 
-static void wst_frankCastIdle(WarContext* context, WarEntity* entity)
+static void wst_castIdle(WarContext* context, WarEntity* entity)
 {
     WarStateIdle* idle = wst_createIdleState(context, entity, false);
     if (!idle || !wst_resetState(context, entity, (WarStateBase*)idle, WAR_TRANSITION_CAUSE_COMPLETION))
@@ -62,11 +62,11 @@ static void wst_frankCastIdle(WarContext* context, WarEntity* entity)
     wmv_settle(context, entity);
 }
 
-static void wst_frankPrepareCast(WarContext* context, WarEntity* entity, WarStateCast* state)
+static void wst_prepareCast(WarContext* context, WarEntity* entity, WarStateCast* state)
 {
     WarOriginalUnit* original = wos_unit(context, entity);
     if (!original) return;
-    const u8 order = wst_frankSpellOrder(state->spellType);
+    const u8 order = wst_spellOrder(state->spellType);
     if (!order)
     {
         logError("original kernel: unsupported spell %d for entity %u", state->spellType, entity->id);
@@ -80,7 +80,7 @@ static void wst_frankPrepareCast(WarContext* context, WarEntity* entity, WarStat
         WarUnitComponent* other = target && wu_isUnit(target) ? we_getUnitComponent(context, target) : NULL;
         if (targeted && (!other || (order != 17 && wu_isBuildingUnitType(other->type))))
         {
-            wst_frankCastIdle(context, entity);
+            wst_castIdle(context, entity);
             return;
         }
         WarUnitComponent* unit = we_getUnitComponent(context, entity);
@@ -107,7 +107,7 @@ static void wst_frankPrepareCast(WarContext* context, WarEntity* entity, WarStat
             if (!move)
             {
                 logError("original kernel: failed spell movement for entity %u", entity->id);
-                wst_frankCastIdle(context, entity);
+                wst_castIdle(context, entity);
                 return;
             }
             move->targetEntityId = target ? target->id : 0;
@@ -116,7 +116,7 @@ static void wst_frankPrepareCast(WarContext* context, WarEntity* entity, WarStat
             if (!wst_pushState(context, entity, (WarStateBase*)move, WAR_TRANSITION_CAUSE_COMPLETION))
             {
                 logError("original kernel: rejected spell movement for entity %u", entity->id);
-                wst_frankCastIdle(context, entity);
+                wst_castIdle(context, entity);
             }
             return;
         }
@@ -130,7 +130,7 @@ static void wst_frankPrepareCast(WarContext* context, WarEntity* entity, WarStat
     }
 }
 
-static void wst_frankCastAction(WarContext* context, WarEntity* entity)
+static void wst_castAction(WarContext* context, WarEntity* entity)
 {
     WarOriginalUnit* original = wos_unit(context, entity);
     if (!original) return;
@@ -163,7 +163,7 @@ static void wst_frankCastAction(WarContext* context, WarEntity* entity)
     if (original->current != 26) wos_queue(context, entity, 2, WOR_NONE);
 }
 
-void wst_frankCastTick(WarContext* context, WarEntity* entity, WarStateBase* state)
+void wst_castTick(WarContext* context, WarEntity* entity, WarStateBase* state)
 {
     WarStateCast* cast = (WarStateCast*)state;
     WarUnitComponent* unit = we_getUnitComponent(context, entity);
@@ -182,26 +182,26 @@ void wst_frankCastTick(WarContext* context, WarEntity* entity, WarStateBase* sta
             wmv_settle(context, entity);
             return;
         }
-        wst_frankPrepareCast(context, entity, cast);
+        wst_prepareCast(context, entity, cast);
         wmv_settle(context, entity);
         return;
     }
     // (a walk that handed over to the spell this turn ran this tick's
     // script: the spell's starts at the next, 0x2ECFC)
     if (unit->lastScriptTick == wrng_tick) return;
-    if (wos_tick(context, entity, wst_frankCastAction) != WOR_CHANGED) return;
+    if (wos_tick(context, entity, wst_castAction) != WOR_CHANGED) return;
     if (wmv_takePendingOrder(context, entity)) return;
     WarOriginalUnit* original = wos_unit(context, entity);
     if (!original) return;
     if (original->pending == 2)
     {
-        wst_frankCastIdle(context, entity);
+        wst_castIdle(context, entity);
         return;
     }
     if (original->current >= 22 && original->current <= 25)
     {
         if (wos_summon(context, entity, false) != WOR_CHANGED)
-            wst_frankCastIdle(context, entity);
+            wst_castIdle(context, entity);
         else
             wact_setAction(context, entity, WAR_ACTION_TYPE_ATTACK, false, 1.0f);
         return;
@@ -214,7 +214,7 @@ void wst_frankCastTick(WarContext* context, WarEntity* entity, WarStateBase* sta
         if ((original->current == 20 ? wos_resurrect(context, entity, false)
              : original->current == 26 ? wft_rain(context, entity, false)
                                        : wft_poison(context, entity, false)) != WOR_CHANGED)
-            wst_frankCastIdle(context, entity);
+            wst_castIdle(context, entity);
         else
             wact_setAction(context, entity, WAR_ACTION_TYPE_ATTACK, false, 1.0f);
         return;
@@ -224,14 +224,14 @@ void wst_frankCastTick(WarContext* context, WarEntity* entity, WarStateBase* sta
     WarEntity* target = original->target ? manager->originalEntities[original->target - 1] : NULL;
     if (!recipient || !target || (recipient->flags & (WOR_INACTIVE | WOR_INSIDE)) || recipient->invisibility)
     {
-        wst_frankCastIdle(context, entity);
+        wst_castIdle(context, entity);
         return;
     }
     if (!wu_unitInRange(context, entity, target, 8))
     {
         cast->prepared = false;
         cast->running = false;
-        wst_frankPrepareCast(context, entity, cast);
+        wst_prepareCast(context, entity, cast);
         wmv_settle(context, entity);
         return;
     }
@@ -240,7 +240,7 @@ void wst_frankCastTick(WarContext* context, WarEntity* entity, WarStateBase* sta
         (s16)(there.x - here.x), (s16)(there.y - here.y)));
     if (wos_targetSpell(context, entity, false) != WOR_CHANGED)
     {
-        wst_frankCastIdle(context, entity);
+        wst_castIdle(context, entity);
         return;
     }
     wact_setAction(context, entity, WAR_ACTION_TYPE_ATTACK, false, 1.0f);
@@ -249,9 +249,9 @@ void wst_frankCastTick(WarContext* context, WarEntity* entity, WarStateBase* sta
 void wst_updateCastState(WarContext* context, WarEntity* entity, WarState* state)
 {
     WarStateCast* s = (WarStateCast*)state;
-    if (wai_drivesTicks(context) && wst_frankSpellOrder(s->spellType))
+    if (wai_drivesTicks(context) && wst_spellOrder(s->spellType))
     {
-        wst_frankPrepareCast(context, entity, s);
+        wst_prepareCast(context, entity, s);
         return;
     }
 

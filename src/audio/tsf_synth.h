@@ -12,7 +12,6 @@
 #include <stdint.h>
 
 #define TSF_TRUE 1
-#define TSF_FALSE 0
 #define TSF_RENDER_EFFECTSAMPLEBLOCK 64
 
 typedef struct tsf { int open; } tsf;
@@ -24,13 +23,13 @@ void plat_midi_event(uint8_t status, uint8_t a, uint8_t b);
 void plat_midi_advance(int samples);   // the events so far happen before these samples
 void plat_midi_reset(void);
 
-static tsf tsf_frank_instance;
+static tsf tsf_instance;
 
 static inline tsf* tsf_load_filename(const char* filename)
 {
     (void)filename;
-    tsf_frank_instance.open = 1;
-    return &tsf_frank_instance;
+    tsf_instance.open = 1;
+    return &tsf_instance;
 }
 
 static inline void tsf_close(tsf* f) { if (f) f->open = 0; plat_midi_reset(); }

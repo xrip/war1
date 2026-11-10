@@ -12,8 +12,6 @@
 #define SECONDS_PER_FRAME (1.0f/FRAMES_PER_SECONDS)
 
 #define MOVE_EPSILON 0.5f
-#define MOVE_WAIT_INTENTS 2
-#define MOVE_WAIT_TIME 1.0f
 
 #define MAP_EDGE_SCROLL_GAP 5.0f
 
@@ -28,14 +26,11 @@
 // 4x resampled copies) and let the platform upsample on output
 #define PLAYBACK_FREQ 11025
 
-#define FOG_OF_WAR_UPDATE_TIME 1.0f
 
 #define DATAWAR_FILE_PATH "./DATA.WAR"
-#define ONLINE_DEMO_DATAWAR_FILE_URL "http://ia801608.us.archive.org/view_archive.php?archive=/11/items/WarcraftOrcsHumansDemo/WCRFT.ZIP&file=DEMODATA%2FDATA.WAR"
 
 // Counts
 #define MAX_RESOURCES_COUNT 586
-#define MAX_TEXTURES_COUNT 583
 // every map and scene embeds all component stores at this size; the
 // biggest campaign maps start with ~110 entities
 #define MAX_ENTITIES_COUNT 512
@@ -93,11 +88,9 @@
 #define MAX_PLAYERS_COUNT 5
 #define MAX_FEATURES_COUNT 22
 #define MAX_UPGRADES_COUNT 10
-#define MAX_TILES_COUNT 1024
 
 // Game constants used across multiple modules
 #define TREE_MAX_WOOD 100
-#define GOLDMINE_MAX_GOLD 300
 #define UNIT_MAX_CARRY_WOOD 100
 #define UNIT_MAX_CARRY_GOLD 100
 
@@ -117,7 +110,6 @@
 
 #define WAR_STATE_STACK_DEPTH 4
 
-#define isRetail(context) ((context)->warFile->type == WAR_FILE_TYPE_RETAIL)
 #define isDemo(context) ((context)->warFile->type == WAR_FILE_TYPE_DEMO)
 
 #define isButtonHeld(input, btn) ((input)->buttons[btn].held)

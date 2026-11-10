@@ -7,7 +7,7 @@
 WarStateDescriptor stateDescriptors[WAR_STATE_COUNT] =
 {
     { WAR_STATE_IDLE,       wst_enterIdleState,      NULL, NULL, NULL, wst_exitIdleState,      NULL, WAR_INTERRUPT_ALL },
-    { WAR_STATE_MOVE,       wst_enterMoveState,      NULL, NULL, NULL, wst_exitMoveState,      NULL, WAR_INTERRUPT_ALL },
+    { WAR_STATE_MOVE,       wst_enterMoveState,      NULL, NULL, NULL, NULL,                   NULL, WAR_INTERRUPT_ALL },
     { WAR_STATE_PATROL,     wst_enterPatrolState,    NULL, NULL, NULL, NULL,                   NULL, WAR_INTERRUPT_ALL },
     { WAR_STATE_FOLLOW,     NULL,                    NULL, NULL, NULL, NULL,                   NULL, WAR_INTERRUPT_ALL },
     { WAR_STATE_ATTACK,     wst_enterAttackState,     NULL, NULL, wst_resumeAttackState, NULL,   NULL, WAR_INTERRUPT_PLAYER_ORDER | WAR_INTERRUPT_AI_ORDER | WAR_INTERRUPT_STATUS | WAR_INTERRUPT_SCRIPT | WAR_INTERRUPT_LIFECYCLE },

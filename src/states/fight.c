@@ -43,9 +43,9 @@ static s32 wft_missileType(WarUnitType type)
     }
 }
 
-typedef WarOriginalEffect WarFrankMissile;
+typedef WarOriginalEffect WarMissile;
 
-static WarFrankMissile wft_missiles[WFT_MISSILES];
+static WarMissile wft_missiles[WFT_MISSILES];
 static WarMap* wft_map;
 static s8 wft_windX, wft_windY;
 
@@ -216,7 +216,7 @@ static void wft_launch(WarContext* context, WarEntity* e, WarUnitComponent* u, W
     s32 slot = -1;
     for (s32 i = 0; i < WFT_MISSILES; i++) if (!wft_missiles[i].used) { slot = i; break; }
     if (slot < 0) return;
-    WarFrankMissile* m = &wft_missiles[slot];
+    WarMissile* m = &wft_missiles[slot];
     memset(m, 0, sizeof(*m));
     m->used = true;
     m->type = (u8)mtype;
@@ -257,7 +257,7 @@ static void wft_launch(WarContext* context, WarEntity* e, WarUnitComponent* u, W
 }
 
 // 0x11FF0 (and 0x12074 for a rock): one step of a missile's run.
-static void wft_fly(WarFrankMissile* m)
+static void wft_fly(WarMissile* m)
 {
     static const u8 speed[12] = { 4, 2, 5, 0, 0, 0, 0, 0, 0, 0, 4, 4 };
     static const u8 arc[12] = { 0, 5, 10, 5, 0, 255, 0, 0, 168, 31, 1, 0 };
@@ -295,7 +295,7 @@ static void wft_fly(WarFrankMissile* m)
 
 // A rock hits occupied tiles, not distinct units; adjacent damage is
 // quartered, and a building quarters it again (0x120C8).
-static void wft_rockUnitSplash(WarContext* context, WarFrankMissile* missile, WarEntity* shooter)
+static void wft_rockUnitSplash(WarContext* context, WarMissile* missile, WarEntity* shooter)
 {
     const s32 cx = missile->x >= 0 ? missile->x / 16 : -((15 - missile->x) / 16);
     const s32 cy = missile->y >= 0 ? missile->y / 16 : -((15 - missile->y) / 16);
@@ -342,7 +342,7 @@ static void wft_missilesTick(WarContext* context)
     runtime.windY = wft_windY;
     for (s32 i = 0; i < WFT_MISSILES; i++)
     {
-        WarFrankMissile* m = &wft_missiles[i];
+        WarMissile* m = &wft_missiles[i];
         if (!m->used) continue;
         if (m->type == 3)
         {
@@ -443,7 +443,7 @@ void wft_unitTick(WarContext* context, WarEntity* e, WarStateBase* st)
 {
     WarUnitComponent* u = we_getUnitComponent(context, e);
     if (!u) return;
-    if (st && st->type == WAR_STATE_CHOPPING) return;   // (its strokes: wst_frankChopTick)
+    if (st && st->type == WAR_STATE_CHOPPING) return;   // (its strokes: wst_chopTick)
     if (!st || st->type != WAR_STATE_ATTACK || u->wmvStepping)
     {
         u->attackScriptOn = false;

@@ -1,4 +1,4 @@
-# frank-war1 host build; scripts/build.sh and scripts/build-win.sh run it.
+# frank-war1 host build; scripts/build.sh runs it.
 # Copyright (c) 2026 Mikhail Matveev <xtreme@rh1.tech>
 # SPDX-License-Identifier: Zlib
 cmake_minimum_required(VERSION 3.21)

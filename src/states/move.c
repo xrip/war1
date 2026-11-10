@@ -6,11 +6,6 @@
 #include "units/units.h"
 #include "map/map.h"
 
-#define MOVE_PROGRESS_DISTANCE_PX          4.0f
-#define MOVE_PATH_REFRESH_TIME             0.5f
-#define MOVE_AVOIDANCE_RECOVERY_TIME       1.5f
-#define MOVE_BLOCKED_TIME                  3.0f
-#define MOVE_LOW_VELOCITY_PX_PER_SECOND    1.0f
 
 static void resetMoveProgress(WarContext* context, WarEntity* entity, WarStateMove* state)
 {
@@ -76,14 +71,6 @@ void wst_enterMoveState(WarContext* context, WarEntity* entity, WarState* state)
     s->waypointsIndex = 0;
     resetMoveProgress(context, entity, s);
     wmv_enter(context, entity, s);
-}
-
-void wst_exitMoveState(WarContext* context, WarEntity* entity, WarState* state, WarStateExitReason reason)
-{
-    NOT_USED(context);
-    NOT_USED(entity);
-    NOT_USED(state);
-    NOT_USED(reason);
 }
 
 void wst_updateMoveStates(WarContext* context)

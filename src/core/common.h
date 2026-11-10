@@ -20,7 +20,6 @@ typedef unsigned char uchar;
 
 typedef size_t size32;
 
-#define NO_ARG_STR ""
 
 #ifndef NULL
 #define NULL ((void*)0)
@@ -33,13 +32,9 @@ typedef size_t size32;
 #define arrayArg(type, ...) arrayInit(type, __VA_ARGS__)
 #define arrayLength(arr) (sizeof(arr) / sizeof((arr)[0]))
 #define chance(p)      (SDL_rand(100) < (p))
-#define chancef01(p)   (SDL_randf() < (p))
 #define randomi(a, b)  ((a) + SDL_rand((b) - (a)))
 #define randomf(a, b)  ((a) + SDL_randf() * ((b) - (a)))
 #define inRange(x, a, b) ((x) >= (a) && (x) < (b))
 #define ns2s(nanoseconds) ((nanoseconds) / 1000000000.0)
-#define ns2ms(nanoseconds) (ns2s(nanoseconds) * 1000.0)
 #define ms2s(milliseconds) ((milliseconds) / 1000.0)
-#define ms2ns(milliseconds) (s2ns(ms2s(milliseconds)))
 #define s2ns(seconds) ((seconds) * 1000000000.0)
-#define s2ms(seconds) ((seconds) * 1000.0)

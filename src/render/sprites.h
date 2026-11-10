@@ -50,7 +50,6 @@ WarSpriteResourceRef wspr_createSpriteResourceRef(s32 resourceIndex, s32 frameIn
     return spriteResourceRef;
 }
 
-#define invalidResourceRef() wspr_createSpriteResourceRef(-1, 0, NULL)
 #define imageResourceRef(resourceIndex) wspr_createSpriteResourceRef((resourceIndex), 0, NULL)
 #define spriteResourceRef(resourceIndex, spriteIndex) wspr_createSpriteResourceRef((resourceIndex), 1, arrayArg(s32, (spriteIndex)))
 

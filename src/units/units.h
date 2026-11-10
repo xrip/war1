@@ -76,7 +76,6 @@ extern const WarWallPieceType wallTileTypeMap[16];
 
 #define WAR_WALL_GOLD_COST 100
 #define WAR_WALL_WOOD_COST 0
-#define WAR_WALL_BUILD_TIME __bts(200)
 #define WAR_WALL_MAX_HP 60
 
 #define WAR_ROAD_GOLD_COST 50

@@ -313,12 +313,12 @@ void wmv_settle(WarContext* context, WarEntity* e);
 bool wmv_takePendingOrder(WarContext* context, WarEntity* entity);
 void wst_processPendingTransitionOf(WarContext* context, WarEntity* entity);
 void wst_processPendingTransitionOf(WarContext* context, WarEntity* entity);
-void wst_frankTrainTick(WarContext* context, WarEntity* entity, WarStateBase* st);
-void wst_frankInsideTick(WarContext* context, WarEntity* entity, WarStateBase* st);
-void wst_frankChopTick(WarContext* context, WarEntity* entity, WarStateBase* st);
-void wst_frankCastTick(WarContext* context, WarEntity* entity, WarStateBase* state);
-u8 wst_frankSpellOrder(WarSpellType type);
-void wst_frankChopCheckpoint(WarContext* context, WarEntity* entity, WarStateBase* st);
+void wst_trainTick(WarContext* context, WarEntity* entity, WarStateBase* st);
+void wst_insideTick(WarContext* context, WarEntity* entity, WarStateBase* st);
+void wst_chopTick(WarContext* context, WarEntity* entity, WarStateBase* st);
+void wst_castTick(WarContext* context, WarEntity* entity, WarStateBase* state);
+u8 wst_spellOrder(WarSpellType type);
+void wst_chopCheckpoint(WarContext* context, WarEntity* entity, WarStateBase* st);
 void wft_unitTick(WarContext* context, WarEntity* e, WarStateBase* st);
 void wst_enterAttackState(WarContext* context, WarEntity* entity, WarStateBase* state);
 void wst_resumeAttackState(WarContext* context, WarEntity* entity, WarStateBase* state, WarStateResumeReason reason);
@@ -410,7 +410,6 @@ void wst_enterRepairingState(WarContext* context, WarEntity* entity, WarState* s
 void wst_enterWaitState(WarContext* context, WarEntity* entity, WarState* state);
 
 void wst_exitIdleState(WarContext* context, WarEntity* entity, WarStateBase* state, WarStateExitReason reason);
-void wst_exitMoveState(WarContext* context, WarEntity* entity, WarState* state, WarStateExitReason reason);
 void wst_exitMiningState(WarContext* context, WarEntity* entity, WarState* state, WarStateExitReason reason);
 void wst_exitTrainState(WarContext* context, WarEntity* entity, WarState* state, WarStateExitReason reason);
 void wst_exitUpgradeState(WarContext* context, WarEntity* entity, WarState* state, WarStateExitReason reason);

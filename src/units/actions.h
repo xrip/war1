@@ -11,7 +11,6 @@ struct _WarUnitActionStep
     s32 param;
 };
 
-#define WarUnitActionStepEmpty (WarUnitActionStep){WAR_ACTION_STEP_NONE}
 
 
 shlDeclareList(WarUnitActionStepList, WarUnitActionStep)

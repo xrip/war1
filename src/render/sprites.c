@@ -18,7 +18,7 @@ static SDL_Texture* wspr_newTexture(WarContext* context, u8 format, const u16* l
 {
     SDL_Texture* texture = SDL_CreateTexture(context->renderer, format, SDL_TEXTUREACCESS_STREAMING, width, height);
     if (texture && lut)
-        FRANK_SetTextureLut(texture, lut);
+        FSDL_SetTextureLut(texture, lut);
     return texture;
 }
 
@@ -54,7 +54,7 @@ WarSprite wspr_createFontSprite(WarContext* context, u32 width, u32 height, cons
     sprite.texture = wspr_newTexture(context, SDL_PIXELFORMAT_FONT2, NULL, width, height);
     if (sprite.texture)
     {
-        FRANK_SetTextureSourceDiv(sprite.texture, div);
+        FSDL_SetTextureSourceDiv(sprite.texture, div);
         SDL_UpdateTexture(sprite.texture, NULL, data, width);
     }
     return sprite;
@@ -167,7 +167,7 @@ void wspr_updateSpriteImage(WarContext *context, WarSprite sprite, u8 data[])
     if (sprite.format == SDL_PIXELFORMAT_INDEX8 && sprite.framesCount > 0 && sprite.frames != NULL &&
         sprite.frames[0].off == WSPR_CROPPED_FRAME)
     {
-        FRANK_SetTextureCrop(sprite.texture, data[-4], data[-3], data[-2], data[-1]);
+        FSDL_SetTextureCrop(sprite.texture, data[-4], data[-3], data[-2], data[-1]);
     }
 }
 
