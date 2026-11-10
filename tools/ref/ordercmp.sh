@@ -14,6 +14,6 @@ done
 out="$(mktemp -d "$REF/build120/frank-orders.XXXXXX")"
 trap 'rm -f "$out/test-orders"; rmdir "$out"' EXIT
 clang -std=c11 -O1 -Wall -Wextra -Werror -fsanitize=address,undefined \
-    -I"$REF/runtime" "$ROOT/tools/ref/test_order_kernel.c" "$ROOT/src/port/orders.c" \
+    -I"$REF/runtime" "$ROOT/tools/ref/test_order_kernel.c" "$ROOT/src/units/orders.c" \
     "$REF/build120/game.o" -o "$out/test-orders"
 "$out/test-orders" "$REF/build120/image.bin"

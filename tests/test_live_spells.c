@@ -1,7 +1,7 @@
 // Headless integration fixtures on the real game, resources and script dispatcher.
 // SPDX-License-Identifier: Zlib
 #define wai_debug wai_gameDebug
-#include "../src/engine/war1.c"
+#include "../src/main.c"
 #undef wai_debug
 
 static WarEntityId spellCaster, spellRecipient;

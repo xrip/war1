@@ -17,11 +17,18 @@ game's `DATA.WAR`.
 
 | Path | What it is |
 |---|---|
-| `src/engine/` | The engine: war1 with the port's changes (`WAR_FRANK`), built as one unit (`war1.c` includes the rest); zlib, see `src/engine/LICENSE` |
-| `src/port/` | Glue between war1 and the platform: a small SDL3 stand-in (`fsdl.c`, `include/SDL3`), the original computer player, unit scripts, orders and movement |
-| `src/host/` | The platform on the desktop: windowed play, headless deterministic runs, input scripts, replays, audio capture |
-| `third_party/` | war1's bundled libraries (shl, TinySoundFont, Tracy's C header); SDL3 for Windows goes into `third_party/sdl3` |
-| `assets/` | war1's font images, the source of `src/port/war_fonts.h` |
+| `src/` | The game (war1 and the port), one folder per part; `src/main.c` includes every file in build order, as one unit |
+| `src/core/` | Types, enums, memory, log, math, collections; the original's random numbers and float functions that are the same on every build |
+| `src/platform/` | What the game needs from a platform (`plat.h`); the desktop (`host.c`: window, headless deterministic runs, input scripts, replays, audio capture); the SDL3 stand-in the game draws on (`sdl/`); recording and replay hooks |
+| `src/data/` | Reading `DATA.WAR` |
+| `src/audio/`, `src/render/` | Sound and music; drawing, sprites, animations, fonts |
+| `src/map/` | The map: terrain, roads, walls, ruins, trees, path searches |
+| `src/units/` | Entities, units, missiles, commands; the original's unit scripts and orders |
+| `src/states/` | One file per unit state (idle, move, attack, ...); the original's walking (`walk.c`) and blows (`fight.c`) |
+| `src/ai/` | The original computer player |
+| `src/game/`, `src/ui/` | Game flow, campaigns, cheats; menus, scenes, the panels on the map |
+| `third_party/` | war1's bundled libraries (shl, TinySoundFont); SDL3 for Windows goes into `third_party/sdl3` |
+| `assets/` | war1's font images, the source of `src/render/fonts.h` |
 | `scripts/` | Build scripts; they run CMake (`CMakeLists.txt`) |
 | `tests/` | Host-build test fixtures (unit scripts, orders, spells, gameplay parity) |
 | `tools/agent/` | The kit that played both campaigns on the host build, and the 24 winning replays |
@@ -52,7 +59,7 @@ Link or copy `DATA.WAR` into `build/host/run/` and run the binary from there:
     ../war1-host.exe --race orc --mission 1                    # straight into a campaign mission
 
 The host build is headless and deterministic by default: virtual time only
-advances while the game waits for its next frame. `src/host/plat_host.c` lists
+advances while the game waits for its next frame. `src/platform/host.c` lists
 its options (input scripts, recording, replay checks, WAV capture).
 
 ## Campaign replays
@@ -73,8 +80,8 @@ A replay ends with `campaign result: win at tick T`.
 - **Warcraft: Orcs & Humans** © 1994 Blizzard Entertainment. Not included;
   bring your own data.
 - **[war1](https://github.com/acoto87/war1)** by Alejandro Coto Gutiérrez:
-  the engine (zlib license), with its bundled libraries in
-  `third_party` (shl, TinySoundFont, Tracy).
+  the engine (zlib license, `LICENSE.war1`), with its bundled libraries in
+  `third_party` (shl, TinySoundFont).
 - **[SDL3](https://www.libsdl.org/)** for the host build (zlib).
 
 The original computer player was worked out from a decompilation of WAR.EXE

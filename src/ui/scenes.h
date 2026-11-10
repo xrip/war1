@@ -1,0 +1,58 @@
+#pragma once
+
+#include "game/campaigns.h"
+#include "game/cheats.h"
+#include "units/entities.h"
+
+struct _WarScene
+{
+    WarSceneType type;
+    WarEntityManager entityManager;
+
+    WarCheatStatus cheatStatus;
+
+    union
+    {
+        struct
+        {
+            f64 endRealTime;
+        } blizzard;
+
+        struct
+        {
+            WarRace yourRace;
+            WarRace enemyRace;
+            s32 customMap;
+            WarMainMenuPanel menuPanel;
+        } menu;
+
+        struct
+        {
+            f64 endRealTime;
+            f32 scrollY;
+            WarRace race;
+            WarCampaignMapType mapType;
+            StringView briefingText;
+        } briefing;
+    };
+};
+
+struct _WarSceneDescriptor
+{
+    WarSceneType type;
+    WarSceneFunc enterSceneFunc;
+    WarSceneFunc leaveSceneFunc;
+    WarSceneFunc updateSceneFunc;
+    WarSceneFunc renderSceneFunc;
+    // Optional: called in wsc_renderScene after the animation loop, so it
+    // draws on top of both retained UI entities and sprite animations.
+    WarSceneFunc renderOverlayFunc;
+};
+
+WarScene* wsc_createScene(WarContext* context, WarSceneType type);
+void wsc_freeScene(WarScene* scene);
+
+void wsc_enterScene(WarContext* context);
+void wsc_updateScene(WarContext* context);
+void wsc_renderScene(WarContext* context);
+void wsc_leaveScene(WarContext* context);

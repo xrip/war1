@@ -5,7 +5,7 @@ decompilation of WarCraft: Orcs & Humans "FLOPPY VERSION 1.20" (WAR.EXE,
 sha256 c9254c34…) with warcraft1-rebirth's tools, read instruction by
 instruction and checked by tracing a running game. This is a description of
 behaviour in our own words, for reimplementing it in war1
-(`src/engine/war_ai.c`). No code or data from the game is copied
+(`src/ai/ai.c`). No code or data from the game is copied
 here; addresses are given only so the analysis can be re-checked.
 
 Supporting sources: the community "Insider's Guide" (blizzardarchive,
@@ -28,7 +28,7 @@ campaign scripts for the per-mission objectives.
 
 ### Direct reimplementation boundary
 
-The replacement execution model is `src/port/orders.c`, with its
+The replacement execution model is `src/units/orders.c`, with its
 own stable 200-record unit table contract and no dependency on war1's
 state machine, renderer, allocator or entity types. A target reference
 is a slot plus one, not a native entity ID: death, corpse retention,
@@ -40,7 +40,7 @@ target/retained attacker, command suppression, queued sound, script frame
 and pixel displacement. Its callbacks are for checkpoint order bodies,
 actions, exploration, presentation and the simulation RNG. Existing war1
 handlers are not used to infer the kernel's current or following order.
-The kernel is now linked into the game through `src/port/scripts.c`.
+The kernel is now linked into the game through `src/units/scripts.c`.
 The live adapter replaces all four script interpreters (idle, walking,
 attack and chopping). Each entity has one persistent kernel PC/wait,
 selected by `wor_replace` and executed by `wor_scriptTick`; the separate
@@ -1924,7 +1924,7 @@ format (host `WAR_AILOG`), compared minute by minute.
   Lothar included) acquires; a unit under attack calls the idle fighters in
   its 3x3.
 
-- **Walking** (`0x223D8`, src/port/move.inc): one tile at a time,
+- **Walking** (`0x223D8`, src/states/walk.c): one tile at a time,
   one unit to a tile. At the walk script's checkpoint the move order checks
   for arrival (within the order's range of the goal; a building as goal is
   its nearest edge tile, or the middle of a side, `0x221D8`), plans a route
@@ -1970,7 +1970,7 @@ format (host `WAR_AILOG`), compared minute by minute.
   building's checkpoint 11 ticks on and every 9 after; two checkpoints a
   step; the unit comes out at the second after the last: steps × 18 + 20
   ticks, on the first free tile round the building from its top left.
-- **Blows and missiles** (`0x106EC`, src/port/fight.inc): a melee
+- **Blows and missiles** (`0x106EC`, src/states/fight.c): a melee
   blow rolls its miss at the attack script's action; a shot launches a
   missile that has rolled it and aims off by up to 7 pixels (15 on a miss)
   each way, flies 5 (arrow), 4 (fireball) or 2 (rock) pixels a tick with a

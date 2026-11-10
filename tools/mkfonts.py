@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mkfonts.py — war1's font atlases (8x-upscaled PNGs) to src/port/war_fonts.h:
+# mkfonts.py — war1's font atlases (8x-upscaled PNGs) to src/render/fonts.h:
 # native-size glyph pixels, 0 clear, 1 black, 2 white (tinted when drawn).
 # Copyright (c) 2026 Mikhail Matveev <xtreme@rh1.tech>
 # SPDX-License-Identifier: Zlib

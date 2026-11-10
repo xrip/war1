@@ -6,7 +6,7 @@
 #include <string.h>
 
 #include "x86.h"
-#include "../../src/port/orders.h"
+#include "../../src/units/orders.h"
 
 typedef struct { uint32_t addr; void (*fn)(Cpu*); } LiftedEntry;
 extern const LiftedEntry lifted_table[];

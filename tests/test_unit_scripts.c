@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Zlib
 #include <assert.h>
-#include "../src/port/script.h"
+#include "../src/units/scripts.h"
 
 static void expectDelay(uint8_t wait, unsigned ticks)
 {
