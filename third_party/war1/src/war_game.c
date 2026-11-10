@@ -535,6 +535,10 @@ static void cpuRelax(void)
 {
 #if defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
     _mm_pause();
+#elif defined(_WIN32) && defined(WAR_FRANK)
+    // frank: on the headless host build virtual time only advances in
+    // plat_sleep_ms, so a pause-spin here would never reach the deadline
+    SDL_Delay(0);
 #elif defined(__i386__) || defined(__x86_64__)
     __builtin_ia32_pause();
 #else

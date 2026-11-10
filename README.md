@@ -1,14 +1,14 @@
-# frank-war1
+# frank-war1 (win32 host)
 
-**Warcraft: Orcs & Humans on the RP2350.** The whole game runs on
-one RP2350 microcontroller with PSRAM: HDMI video, sound with OPL2 music over HDMI or I2S,
-USB keyboard, mouse and gamepads, and the game data on a microSD card.
+**Warcraft: Orcs & Humans on the desktop.** This branch keeps only the host
+build: the game on Windows (and macOS/Linux) with SDL3. The RP2350 board
+firmware lives in the `main` branch.
 
 The engine is [war1](https://github.com/acoto87/war1), an open-source
 reimplementation of Warcraft: Orcs & Humans in C. The port adds a platform
-layer for the board, and a computer opponent that behaves like the original
-game's (WAR.EXE "FLOPPY VERSION 1.20"): same decisions, same order of work,
-same random draws. `docs/ai.md` describes that behaviour in detail.
+layer, and a computer opponent that behaves like the original game's
+(WAR.EXE "FLOPPY VERSION 1.20"): same decisions, same order of work, same
+random draws. `docs/ai.md` describes that behaviour in detail.
 
 No Blizzard code or data is in this repository. You need your own copy of the
 game's `DATA.WAR`.
@@ -17,46 +17,33 @@ game's `DATA.WAR`.
 
 | Path | What it is |
 |---|---|
-| `master/` | Firmware: boot, console shell, HDMI video and audio, I2S audio, USB host, microSD, the game's platform layer (`src/game/`) |
 | `port/` | Glue between war1 and the platform: a small SDL3 stand-in (`fsdl.c`), the original computer player, unit scripts, orders and movement |
-| `common/` | Board definitions (FRANK Core 2, M2), clocks, PSRAM setup |
-| `host/` | The same game on macOS/Linux with SDL3, for development: headless deterministic runs, input scripts, replays, audio capture |
-| `third_party/` | war1, emu8950, Apogee AL_MIDI (see Credits) |
-| `tools/` | Bench and debug tools (flashing, UART console, SD copy, frame capture, AI comparison) |
-| `tools/psram_unstick/` | RAM-only loader that frees a board whose flash reads back as noise in BOOTSEL |
+| `host/` | The platform on the desktop: windowed play, headless deterministic runs, input scripts, replays, audio capture |
+| `third_party/war1` | The engine, with its bundled libraries in `deps` (shl, TinySoundFont, stb) |
 | `tools/agent/` | The kit that played both campaigns on the host build, and the 24 winning replays |
+| `tools/test_*` | Host-build test fixtures (unit scripts, orders, spells, gameplay parity) |
 | `docs/ai.md` | How the original computer player works, routine by routine |
 
 ## Building
 
-Firmware (Raspberry Pi Pico SDK, ARM GCC, CMake, Ninja):
+Windows (MinGW-w64 with posix threads, SDL3 mingw devel):
 
-    ./build.sh            # FRANK Core 2         -> build/master/frank-war1.elf
-    ./build.sh M2         # Murmulator / FRANK M2 -> build/m2/frank-war1.elf
-    ./build.sh M2 cdc     # development build: the USB port is a serial console
-                          # (no keyboard; "~BOOT~" restarts into BOOTSEL)
+    scoop install mingw   # or any gcc (posix-seh); set GCC=/path/to/gcc.exe
+    # unpack https://github.com/libsdl-org/SDL/releases/.../SDL3-devel-<ver>-mingw.zip
+    # into third_party/sdl3 (the script takes SDL=<dir>/x86_64-w64-mingw32)
+    host/build-win.sh     # -> build/host/war1-host.exe, SDL3.dll copied next to it
 
-Release firmware (both boards, into `release/`; `--publish` tags and makes
-the GitHub release):
-
-    ./release.sh 1.00     # -> release/core2_frank-war1_1_00.uf2, m2_frank-war1_1_00.uf2
-
-Host build (clang, SDL3 via pkg-config):
+macOS / Linux (clang, SDL3 via pkg-config):
 
     host/build.sh         # -> build/host/war1-host
 
 ## Game data
 
-Copy your `DATA.WAR` to `/war1/DATA.WAR` on the microSD card. An optional
-`/war1/frank.cfg` holds the settings: F12 opens the settings window (sound
-output, volume, sound effects, music, mouse speed; F12 on the welcome screen
-too). Sound goes out over HDMI (44.1 kHz stereo audio packets) or the I2S DAC.
+Link or copy `DATA.WAR` into `build/host/run/` and run the binary from there:
 
-For the host build, link or copy `DATA.WAR` into `build/host/run/` and run
-the binary from there:
-
-    cd build/host/run && ../war1-host                        # windowed play: WAR_WINDOW=1
-    ../war1-host --race human --mission 3                    # straight into a campaign mission
+    cd build/host/run
+    WAR_WINDOW=1 ../war1-host.exe                              # windowed play (Windows)
+    ../war1-host.exe --race orc --mission 1                    # straight into a campaign mission
 
 The host build is headless and deterministic by default: virtual time only
 advances while the game waits for its next frame. `host/plat_host.c` lists
@@ -82,23 +69,7 @@ A replay ends with `campaign result: win at tick T`.
 - **[war1](https://github.com/acoto87/war1)** by Alejandro Coto Gutiérrez:
   the engine (zlib license), with its bundled libraries in
   `third_party/war1/deps` (shl, TinySoundFont, stb).
-- **[emu8950](https://github.com/digital-sound-antiques/emu8950)** by Mitsutaka
-  Okazaki, with Graham Sanderson's RP2040 optimisations: the OPL2 emulator
-  for the music (MIT).
-- **Apogee Sound System AL_MIDI** © 1994-1995 Apogee Software, Ltd., as
-  released under the GPL and used in Chocolate Blood: the Adlib MIDI player and
-  General MIDI timbre bank (GPL-2.0-or-later).
-- **[FatFs](http://elm-chan.org/fsw/ff/)** by ChaN: the FAT file system
-  (FatFs license).
-- **[pico_fatfs / SD card SPI driver](https://github.com/elehobica/pico_fatfs)**
-  by Elehobica (BSD 2-Clause), with Raspberry Pi's PIO SPI (BSD-3-Clause).
-- **XInput host driver** from [usb64](https://github.com/Ryzee119/usb64) by
-  Ryan Wendland (MIT), and the **TinyUSB** HID host example (MIT).
-- **[Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk)** and
-  **[TinyUSB](https://github.com/hathach/tinyusb)** (BSD-3-Clause, MIT).
 - **[SDL3](https://www.libsdl.org/)** for the host build (zlib).
-- PSRAM setup from **frank-blood** / **frank-quake2**, earlier ports to the
-  FRANK boards.
 
 The original computer player was worked out from a decompilation of WAR.EXE
 1.20 made with **warcraft1-rebirth**'s tools, and checked against the community's

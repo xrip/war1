@@ -13,3 +13,7 @@ release/
 shots/
 *.wav
 *.zip
+third_party/sdl3/
+/war1/
+*.exe
+!build/host/*.exe

@@ -398,8 +398,9 @@ void plat_log(int priority, const char *line) {
 
 void plat_quit(void) {}
 
-#include <execinfo.h>
 #include <signal.h>
+#if defined(__GLIBC__)   /* execinfo.h: glibc only (macOS/Windows have no backtrace()) */
+#include <execinfo.h>
 static void on_abort(int sig) {
     void *frames[32];
     int n = backtrace(frames, 32);
@@ -407,9 +408,12 @@ static void on_abort(int sig) {
     signal(sig, SIG_DFL);
     raise(sig);
 }
+#endif
 
 int main(int argc, char **argv) {
+#if defined(__GLIBC__)
     signal(SIGABRT, on_abort);
+#endif
     extern int war_main(int argc, char **argv);
     extern bool wai_autoHuman, wai_autoHumanFree;
     /* test mode: the AI plays the human side too ("free": without paying) */

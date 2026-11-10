@@ -26,6 +26,12 @@
 
 extern bool wai_isComputerPlayer(WarContext* context, s32 player);
 
+#if !defined(__GLIBC__)
+/* The debug hooks below print a stack with glibc's backtrace(); elsewhere it is a no-op. */
+static int backtrace(void **frames, int n) { (void)frames; (void)n; return 0; }
+static void backtrace_symbols_fd(void *const *frames, int n, int fd) { (void)frames; (void)n; (void)fd; }
+#endif
+
 static f32 wscr_speeds[WSCR_TYPES][3];   // walking speed, px/s, by upgrade level (0: unknown)
 
 static const u8* wscr_data;
