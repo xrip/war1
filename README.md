@@ -17,25 +17,31 @@ game's `DATA.WAR`.
 
 | Path | What it is |
 |---|---|
-| `port/` | Glue between war1 and the platform: a small SDL3 stand-in (`fsdl.c`), the original computer player, unit scripts, orders and movement |
-| `host/` | The platform on the desktop: windowed play, headless deterministic runs, input scripts, replays, audio capture |
-| `third_party/war1` | The engine, with its bundled libraries in `deps` (shl, TinySoundFont, stb) |
+| `src/engine/` | The engine: war1 with the port's changes (`WAR_FRANK`), built as one unit (`war1.c` includes the rest); zlib, see `src/engine/LICENSE` |
+| `src/port/` | Glue between war1 and the platform: a small SDL3 stand-in (`fsdl.c`, `include/SDL3`), the original computer player, unit scripts, orders and movement |
+| `src/host/` | The platform on the desktop: windowed play, headless deterministic runs, input scripts, replays, audio capture |
+| `third_party/` | war1's bundled libraries (shl, TinySoundFont, Tracy's C header); SDL3 for Windows goes into `third_party/sdl3` |
+| `assets/` | war1's font images, the source of `src/port/war_fonts.h` |
+| `scripts/` | Build scripts; they run CMake (`CMakeLists.txt`) |
+| `tests/` | Host-build test fixtures (unit scripts, orders, spells, gameplay parity) |
 | `tools/agent/` | The kit that played both campaigns on the host build, and the 24 winning replays |
-| `tools/test_*` | Host-build test fixtures (unit scripts, orders, spells, gameplay parity) |
 | `docs/ai.md` | How the original computer player works, routine by routine |
 
 ## Building
 
-Windows (MinGW-w64 with posix threads, SDL3 mingw devel):
+The scripts run CMake (`CMakeLists.txt`) into `build/host`; CLion or any
+CMake IDE opens the project as it is.
+
+Windows (CMake, Ninja, MinGW-w64 with posix threads, SDL3 mingw devel):
 
     scoop install mingw   # or any gcc (posix-seh); set GCC=/path/to/gcc.exe
     # unpack https://github.com/libsdl-org/SDL/releases/.../SDL3-devel-<ver>-mingw.zip
-    # into third_party/sdl3 (the script takes SDL=<dir>/x86_64-w64-mingw32)
-    host/build-win.sh     # -> build/host/war1-host.exe, SDL3.dll copied next to it
+    # into third_party/sdl3 (or set SDL=<dir>/x86_64-w64-mingw32)
+    scripts/build-win.sh  # -> build/host/war1-host.exe, SDL3.dll copied next to it
 
-macOS / Linux (clang, SDL3 via pkg-config):
+macOS / Linux (CMake, clang, SDL3):
 
-    host/build.sh         # -> build/host/war1-host
+    scripts/build.sh      # -> build/host/war1-host
 
 ## Game data
 
@@ -46,7 +52,7 @@ Link or copy `DATA.WAR` into `build/host/run/` and run the binary from there:
     ../war1-host.exe --race orc --mission 1                    # straight into a campaign mission
 
 The host build is headless and deterministic by default: virtual time only
-advances while the game waits for its next frame. `host/plat_host.c` lists
+advances while the game waits for its next frame. `src/host/plat_host.c` lists
 its options (input scripts, recording, replay checks, WAV capture).
 
 ## Campaign replays
@@ -68,7 +74,7 @@ A replay ends with `campaign result: win at tick T`.
   bring your own data.
 - **[war1](https://github.com/acoto87/war1)** by Alejandro Coto Gutiérrez:
   the engine (zlib license), with its bundled libraries in
-  `third_party/war1/deps` (shl, TinySoundFont, stb).
+  `third_party` (shl, TinySoundFont, Tracy).
 - **[SDL3](https://www.libsdl.org/)** for the host build (zlib).
 
 The original computer player was worked out from a decompilation of WAR.EXE

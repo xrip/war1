@@ -5,7 +5,7 @@ decompilation of WarCraft: Orcs & Humans "FLOPPY VERSION 1.20" (WAR.EXE,
 sha256 c9254c34…) with warcraft1-rebirth's tools, read instruction by
 instruction and checked by tracing a running game. This is a description of
 behaviour in our own words, for reimplementing it in war1
-(`third_party/war1/src/war_ai.c`). No code or data from the game is copied
+(`src/engine/war_ai.c`). No code or data from the game is copied
 here; addresses are given only so the analysis can be re-checked.
 
 Supporting sources: the community "Insider's Guide" (blizzardarchive,
@@ -28,7 +28,7 @@ campaign scripts for the per-mission objectives.
 
 ### Direct reimplementation boundary
 
-The replacement execution model is `port/war_orders_frank.c`, with its
+The replacement execution model is `src/port/orders.c`, with its
 own stable 200-record unit table contract and no dependency on war1's
 state machine, renderer, allocator or entity types. A target reference
 is a slot plus one, not a native entity ID: death, corpse retention,
@@ -40,7 +40,7 @@ target/retained attacker, command suppression, queued sound, script frame
 and pixel displacement. Its callbacks are for checkpoint order bodies,
 actions, exploration, presentation and the simulation RNG. Existing war1
 handlers are not used to infer the kernel's current or following order.
-The kernel is now linked into the game through `war_scripts_frank.c`.
+The kernel is now linked into the game through `src/port/scripts.c`.
 The live adapter replaces all four script interpreters (idle, walking,
 attack and chopping). Each entity has one persistent kernel PC/wait,
 selected by `wor_replace` and executed by `wor_scriptTick`; the separate
@@ -63,7 +63,7 @@ unit cursor use these original slots. Resurrection now consumes retained
 corpse records through the original cast path; placeholder rebuilding
 and complete target/attacker identity still need integration.
 
-`tools/test_order_gameplay.py` runs selected missions (all 24 by default)
+`tests/test_order_gameplay.py` runs selected missions (all 24 by default)
 headlessly for 10,000 ticks, using the cached reference seeds, RNG logs
 and exact per-tick tile traces. It rejects missing coverage, earlier
 tile/RNG splits than the saved baseline, kernel errors and duplicate
@@ -141,7 +141,7 @@ harness uses synthetic scripts; it does not establish the 64-instruction
 safety budget for every real resource. Its reference-linked executable
 is built temporarily under the external reference's `build120` directory
 and removed on exit; neither original code nor resources are copied into
-this repository. `tools/test_original_orders.c` separately checks the
+this repository. `tests/test_original_orders.c` separately checks the
 kernel's command and checkpoint contracts with synthetic callbacks.
 
 Status is deliberately conservative: **read** means the instruction body
@@ -875,7 +875,7 @@ match 49,152 direct original calls, and timer handling matches 216 original
 status updates. As with invisibility, those payload comparisons use a full
 original effect pool: shared effect allocation is still not implemented.
 
-`bash tools/test_live_spells.sh`, after `bash host/build.sh`, builds a
+`bash tests/test_live_spells.sh`, after `bash scripts/build.sh`, builds a
 test-only game translation unit and uses the real user's resources and
 headless script loop. Twelve fixtures check the forty-HP cap, near-full
 healing, a daemon reaching zero, both sides of armour's thirty-HP boundary,
@@ -887,7 +887,7 @@ retained facing and multi-corpse creation. The redirect fixture checks that
 the replaced state is released and player priority remains intact. Poison
 checks deferred payment, script-driven pulses and caster immunity without
 a legacy damage component. All twelve also
-pass with `SAN=-fsanitize=address`. The fixture hook is not compiled into
+pass on a build made with `SAN=-fsanitize=address scripts/build.sh`. The fixture hook is not compiled into
 the normal game. Player summons now submit the original cast order with
 following idle rather than immediately spawning in the command handler.
 
@@ -935,12 +935,12 @@ restarting an animation or rejecting a PC below its entry point. Stop
 keeps its continuation PC; wait zero is no longer an idle-entry sentinel.
 Malformed/truncated instructions and exhausted instruction budgets are
 reported rather than silently restarting a script. The synthetic
-`tools/test_unit_scripts.c` cases exercise shared blocks, stop continuation,
+`tests/test_unit_scripts.c` cases exercise shared blocks, stop continuation,
 zero/underflow/overflow waits and invalid instructions without game data.
 Run them with:
 
 ```sh
-clang -std=c11 -Wall -Wextra -Werror tools/test_unit_scripts.c -o build/host/test-unit-scripts
+clang -std=c11 -Wall -Wextra -Werror tests/test_unit_scripts.c -o build/host/test-unit-scripts
 build/host/test-unit-scripts
 ```
 
@@ -1795,7 +1795,7 @@ reads them at run time.)
   waves of 8, +2 per wave up to 16); `WAR_AI_HUMAN=free` trains for free
   like the computer. This plays every mission AI vs AI headless, as a
   soak test. The computer beats this simple player in most missions.
-- `PYTHONDONTWRITEBYTECODE=1 python3 tools/test_order_gameplay.py --self-play`
+- `PYTHONDONTWRITEBYTECODE=1 python3 tests/test_order_gameplay.py --self-play`
   runs all 24 missions with the paid human-side autoplay and repeats each
   with the same seed. It checks RNG replay, per-tick unit type/owner/tile,
   state and HP, kernel diagnostics, and real script execution. A short
@@ -1814,7 +1814,7 @@ state traces, without kernel diagnostics. Reports and replay logs are in
 five-minute coverage. The separate original-reference sweep still
 requires all 24 complete 10,000-tick windows.
 
-`PYTHONDONTWRITEBYTECODE=1 python3 tools/test_order_gameplay.py --ticks 20000`
+`PYTHONDONTWRITEBYTECODE=1 python3 tests/test_order_gameplay.py --ticks 20000`
 extends the original-reference comparison to ten minutes, caching the
 longer source traces and native results separately. It still enforces the
 complete five-minute floor; later splits are reported for source analysis,
@@ -1924,7 +1924,7 @@ format (host `WAR_AILOG`), compared minute by minute.
   Lothar included) acquires; a unit under attack calls the idle fighters in
   its 3x3.
 
-- **Walking** (`0x223D8`, port/war_move_frank.inc): one tile at a time,
+- **Walking** (`0x223D8`, src/port/move.inc): one tile at a time,
   one unit to a tile. At the walk script's checkpoint the move order checks
   for arrival (within the order's range of the goal; a building as goal is
   its nearest edge tile, or the middle of a side, `0x221D8`), plans a route
@@ -1970,7 +1970,7 @@ format (host `WAR_AILOG`), compared minute by minute.
   building's checkpoint 11 ticks on and every 9 after; two checkpoints a
   step; the unit comes out at the second after the last: steps × 18 + 20
   ticks, on the first free tile round the building from its top left.
-- **Blows and missiles** (`0x106EC`, port/war_fight_frank.inc): a melee
+- **Blows and missiles** (`0x106EC`, src/port/fight.inc): a melee
   blow rolls its miss at the attack script's action; a shot launches a
   missile that has rolled it and aims off by up to 7 pixels (15 on a miss)
   each way, flies 5 (arrow), 4 (fireball) or 2 (rock) pixels a tick with a

@@ -1,7 +1,7 @@
 # Agent campaign kit (host only)
 
 Helpers that play the campaign through the host build's agent mode
-(`WAR_AGENT=dir`, `ai ag ...` commands, see `port/war_ai_frank.c`), and the
+(`WAR_AGENT=dir`, `ai ag ...` commands, see `src/port/ai.c`), and the
 winning replays. Nothing here touches the board build.
 
 - `start.sh DIR RACE MISSION [BIN]` starts a game in `build/agent/DIR`;
