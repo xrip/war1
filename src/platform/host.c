@@ -15,6 +15,8 @@
 //   --agent DIR    a player outside the game (agent_stop), on the fixed step
 //   --hash-print   prints each script hash check's state hash
 //   --ai-human[=free]  the AI plays the human side too ("free": without paying)
+//   --no-fogfix    the fog as before its edge fix (src/map/map.c), for the
+//                  agent replays
 //
 // The script:
 //
@@ -413,7 +415,7 @@ int main(int argc, char **argv) {
     signal(SIGABRT, on_abort);
 #endif
     extern int war_main(int argc, char **argv);
-    extern bool wai_autoHuman, wai_autoHumanFree;
+    extern bool wai_autoHuman, wai_autoHumanFree, war_fogEdgeFix;
     int n = 1;   /* the host's options out, the game's stay */
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
@@ -427,6 +429,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(a, "--hash-print")) hash_print = true;
         else if (!strcmp(a, "--ai-human")) wai_autoHuman = true;
         else if (!strcmp(a, "--ai-human=free")) wai_autoHuman = wai_autoHumanFree = true;
+        else if (!strcmp(a, "--no-fogfix")) war_fogEdgeFix = false;
         else argv[n++] = argv[i];
     }
     argv[n] = NULL;

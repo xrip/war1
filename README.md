@@ -70,11 +70,12 @@ and `tools/agent/README.md` explains how to rebuild it and play a replay:
         ../war1-host-agent39 --race orc --mission 12
 
 A replay ends with `campaign result: win at tick T`. Those older builds take
-the run mode from `WAR_*` variables; `war1` takes options, and orc1 and orc5
-still win on it:
+the run mode from `WAR_*` variables; `war1` takes options. On `war1` all the
+orc replays and human 8 and 10 still win with the fog as it was when they were
+recorded (`--no-fogfix`); with the fog's edge fix, orc 3 and 9 lose:
 
-    WAR_AILOG=/dev/null ../war1 --headless --fixed \
-        --script ../../../tools/agent/replays/orc5-win.txt --race orc --mission 5
+    WAR_AILOG=/dev/null ../war1 --headless --fixed --no-fogfix \
+        --script ../../../tools/agent/replays/orc3-win.txt --race orc --mission 3
 
 ## Credits
 

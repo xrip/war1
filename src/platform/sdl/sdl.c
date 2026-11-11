@@ -341,6 +341,8 @@ struct SDL_Texture {
     bool opaque;
 };
 
+bool fsdl_font_outline = true;
+
 uint16_t FSDL_RGB565(uint8_t r, uint8_t g, uint8_t b) {
     return (uint16_t)((r >> 3) << 11 | (g >> 2) << 5 | (b >> 3));
 }
@@ -631,7 +633,7 @@ static FSDL_HOT bool render_texture(SDL_Renderer *r, SDL_Texture *t, const SDL_F
             } else { /* FONT2 */
                 for (int x = xa; x < xb; x++) {
                     const uint8_t i = srow[x];
-                    if (i) put(&out[x], i == 1 ? 0 : tint, a32);
+                    if (i == 2 || (i == 1 && fsdl_font_outline)) put(&out[x], i == 1 ? 0 : tint, a32);
                 }
             }
         }
@@ -674,7 +676,7 @@ static FSDL_HOT bool render_texture(SDL_Renderer *r, SDL_Texture *t, const SDL_F
             }
             case SDL_PIXELFORMAT_FONT2: {
                 uint8_t i = px[ty * t->cw + tx];
-                if (i) put(&out[x], i == 1 ? 0 : tint, a32);
+                if (i == 2 || (i == 1 && fsdl_font_outline)) put(&out[x], i == 1 ? 0 : tint, a32);
                 break;
             }
             }

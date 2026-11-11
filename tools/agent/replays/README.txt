@@ -1,7 +1,8 @@
 Agent game replays (host script, frame-stamped). Replay:
   cd build/host/run && WAR_FIXED=1 WAR_SCRIPT=../../agent/replays/humanN-win.txt ../BIN --race human --mission N
 (add WAR_WINDOW=1 to watch). Expect "campaign result: win at tick T".
-Today's build: ../war1 --headless --fixed --script FILE --race R --mission N (orc1, orc5 win).
+Today's build: ../war1 --headless --fixed --no-fogfix --script FILE --race R --mission N
+  (orc1-12, human8, human10 win; without --no-fogfix orc3 and orc9 lose).
 
 Binaries: the game changes, so a replay plays out only on the build it was made with.
   war1-host (here): human1..5 wins, as recorded (2026-11-05 builds before the attack-button fix).

@@ -203,6 +203,8 @@ void FSDL_SetTextureSourceDiv(SDL_Texture *t, int div);
  * the texture; everything else is transparent. */
 void FSDL_SetTextureCrop(SDL_Texture *t, int x, int y, int w, int h);
 uint16_t FSDL_RGB565(uint8_t r, uint8_t g, uint8_t b);
+/* Whether a font's black outline is drawn (on; off for the status line). */
+extern bool fsdl_font_outline;
 
 /* ---- events ---- */
 typedef uint32_t SDL_Keycode;

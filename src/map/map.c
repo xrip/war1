@@ -627,19 +627,27 @@ WarMapTile* wmap_getMapTileState(WarMap* map, s32 x, s32 y)
     return &map->tiles[y * MAP_TILES_WIDTH + x];
 }
 
+// Off (--no-fogfix): the area is clipped to the map before its corners are
+// cut, as the agent replays were recorded. That cuts the tiles at the map
+// edge, leaving a lone visible tile beside them.
+bool war_fogEdgeFix = true;
+
 void wmap_setMapTileState(WarMap* map, s32 startX, s32 startY, s32 width, s32 height, WarMapTileState tileState)
 {
-    if (startX <= 0)
-        startX = 0;
+    if (!war_fogEdgeFix)
+    {
+        if (startX <= 0)
+            startX = 0;
 
-    if (startY <= 0)
-        startY = 0;
+        if (startY <= 0)
+            startY = 0;
 
-    if (startX + width >= MAP_TILES_WIDTH)
-        width = MAP_TILES_WIDTH - startX;
+        if (startX + width >= MAP_TILES_WIDTH)
+            width = MAP_TILES_WIDTH - startX;
 
-    if (startY + height >= MAP_TILES_HEIGHT)
-        height = MAP_TILES_HEIGHT - startY;
+        if (startY + height >= MAP_TILES_HEIGHT)
+            height = MAP_TILES_HEIGHT - startY;
+    }
 
     s32 endX = startX + width;
     s32 endY = startY + height;
@@ -650,6 +658,9 @@ void wmap_setMapTileState(WarMap* map, s32 startX, s32 startY, s32 width, s32 he
         {
             // exclude the corners of the area to get a more "rounded" shape
             if ((y == startY || y == endY - 1) && (x == startX || x == endX - 1))
+                continue;
+
+            if (!inRange(x, 0, MAP_TILES_WIDTH) || !inRange(y, 0, MAP_TILES_HEIGHT))
                 continue;
 
             WarMapTile* tile = wmap_getMapTileState(map, x, y);
